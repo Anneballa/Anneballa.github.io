@@ -1,22 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Hello World</title>
-    <url>/posts/4023ea573ffd/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+    <title>Code-server</title>
+    <url>/posts/4e7e0c96a7e8/</url>
+    <content><![CDATA[<p>发现了一个极其方便的应用，这可要比在宝塔里编辑文件方便很多,发现自己最近在疯狂搞基础设施搭建：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/coder/code-server</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>使用安装命令：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -fsSL https://code-server.dev/install.sh | sh</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>就安装好了，真简单，默认配置文件在以下位置：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">~/.config/code-server/config.yaml</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>配置文件示例：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">bind-addr:</span> <span class="number">0.0</span><span class="number">.0</span><span class="number">.0</span><span class="string">:8080</span>  <span class="comment"># Code Server 监听的地址和端口  </span></span><br><span class="line"><span class="attr">auth:</span> <span class="string">password</span>           <span class="comment"># 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  </span></span><br><span class="line"><span class="attr">password:</span> <span class="string">yourpassword</span>   <span class="comment"># 用于登录的密码  </span></span><br><span class="line"><span class="attr">cert:</span> <span class="literal">false</span>              <span class="comment"># 是否使用 HTTPS，默认为 false  </span></span><br><span class="line"><span class="comment"># cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  </span></span><br><span class="line"><span class="comment"># cert-key: /path/to/cert.key  # 如果使用 HTTPS，指定证书密钥路径  </span></span><br><span class="line"><span class="comment"># cert-host: &quot;&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>然后终端执行：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">code-server</span><br></pre></td></tr></table></figure>
+
+<p>浏览器打开对应URL：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016172233577.png" alt="image-20241016172233577"></p>
+<p>随后就像在用vscode一样：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016172429962.png" alt="image-20241016172429962"></p>
+<p>还支持文件拖拽直接上传，code-server不能以root用户身份运行，所以code-server可能会因为权限问题打不开某些文件或是上传不到某些目录，使用root用户执行命令即可：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> a+w -R /source</span><br></pre></td></tr></table></figure>
+
+<p>目前有个缺点就是扩展仓库里看不到插件，只能凭着感觉去搜：<br>&#x2F;<br><img src="https://anneballa.github.io/pageimgs/image-20241016224140316.png" alt="image-20241016224140316"></p>
+<p>比宝塔传文件方便，如果在局域网内部署，还可以和多人协同，有人实时保存，别人那边会自动更新。部分功能可能需要配置HTTPS证书才能使用，在配置文件中添加即可：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">bind-addr: 0.0.0.0:8080  <span class="comment"># Code Server 监听的地址和端口  </span></span><br><span class="line">auth: password           <span class="comment"># 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  </span></span><br><span class="line">password: yourpassword   <span class="comment"># 用于登录的密码               # 是否使用 HTTPS，默认为 false  </span></span><br><span class="line"><span class="comment"># cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  </span></span><br><span class="line"><span class="comment"># cert-key: /path/to/cert.key  # 如果使用 HTTPS，指定证书密钥路径  </span></span><br><span class="line"><span class="comment"># cert-host: &quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>最好是信任CA证书，自签名证书也可以，但是部分功能也会不正常， 比如Mark Down预览插件就工作不正常，写完博客直接在vscode启动终端推送：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016225755914.png" alt="image-20241016225755914"></p>
+<p>都不需要去找自己的Token，直接在当前浏览器弹出github访问请求，输入密码验证即可，我喜欢这个。</p>
 ]]></content>
+      <categories>
+        <category>Environment Exploration</category>
+      </categories>
+      <tags>
+        <tag>Infrastructure</tag>
+      </tags>
   </entry>
   <entry>
     <title>Hexo博客站点搭建记录</title>
@@ -463,44 +485,22 @@
       </tags>
   </entry>
   <entry>
-    <title>Code-server</title>
-    <url>/posts/4e7e0c96a7e8/</url>
-    <content><![CDATA[<p>发现了一个极其方便的应用，这可要比在宝塔里编辑文件方便很多,发现自己最近在疯狂搞基础设施搭建：</p>
-<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/coder/code-server</span><br></pre></td></tr></table></figure>
+    <title>Hello World</title>
+    <url>/posts/4023ea573ffd/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p>使用安装命令：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -fsSL https://code-server.dev/install.sh | sh</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
 
-<p>就安装好了，真简单，默认配置文件在以下位置：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">~/.config/code-server/config.yaml</span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
 
-<p>配置文件示例：</p>
-<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">bind-addr:</span> <span class="number">0.0</span><span class="number">.0</span><span class="number">.0</span><span class="string">:8080</span>  <span class="comment"># Code Server 监听的地址和端口  </span></span><br><span class="line"><span class="attr">auth:</span> <span class="string">password</span>           <span class="comment"># 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  </span></span><br><span class="line"><span class="attr">password:</span> <span class="string">yourpassword</span>   <span class="comment"># 用于登录的密码  </span></span><br><span class="line"><span class="attr">cert:</span> <span class="literal">false</span>              <span class="comment"># 是否使用 HTTPS，默认为 false  </span></span><br><span class="line"><span class="comment"># cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  </span></span><br><span class="line"><span class="comment"># cert-key: /path/to/cert.key  # 如果使用 HTTPS，指定证书密钥路径  </span></span><br><span class="line"><span class="comment"># cert-host: &quot;&quot;</span></span><br></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
 
-<p>然后终端执行：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">code-server</span><br></pre></td></tr></table></figure>
-
-<p>浏览器打开对应URL：</p>
-<p><img src="https://anneballa.github.io/pageimgs/image-20241016172233577.png" alt="image-20241016172233577"></p>
-<p>随后就像在用vscode一样：</p>
-<p><img src="https://anneballa.github.io/pageimgs/image-20241016172429962.png" alt="image-20241016172429962"></p>
-<p>还支持文件拖拽直接上传，code-server不能以root用户身份运行，所以code-server可能会因为权限问题打不开某些文件或是上传不到某些目录，使用root用户执行命令即可：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> a+w -R /source</span><br></pre></td></tr></table></figure>
-
-<p>目前有个缺点就是扩展仓库里看不到插件，只能凭着感觉去搜：<br>&#x2F;<br><img src="https://anneballa.github.io/pageimgs/image-20241016224140316.png" alt="image-20241016224140316"></p>
-<p>比宝塔传文件方便，如果在局域网内部署，还可以和多人协同，有人实时保存，别人那边会自动更新。部分功能可能需要配置HTTPS证书才能使用，在配置文件中添加即可：</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">bind-addr: 0.0.0.0:8080  <span class="comment"># Code Server 监听的地址和端口  </span></span><br><span class="line">auth: password           <span class="comment"># 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  </span></span><br><span class="line">password: yourpassword   <span class="comment"># 用于登录的密码               # 是否使用 HTTPS，默认为 false  </span></span><br><span class="line"><span class="comment"># cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  </span></span><br><span class="line"><span class="comment"># cert-key: /path/to/cert.key  # 如果使用 HTTPS，指定证书密钥路径  </span></span><br><span class="line"><span class="comment"># cert-host: &quot;&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>最好是信任CA证书，自签名证书也可以，但是部分功能也会不正常， 比如Mark Down预览插件就工作不正常，写完博客直接在vscode启动终端推送：</p>
-<p><img src="https://anneballa.github.io/pageimgs/image-20241016225755914.png" alt="image-20241016225755914"></p>
-<p>都不需要去找自己的Token，直接在当前浏览器弹出github访问请求，输入密码验证即可，我喜欢这个。</p>
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 ]]></content>
-      <categories>
-        <category>Environment Exploration</category>
-      </categories>
-      <tags>
-        <tag>Infrastructure</tag>
-      </tags>
   </entry>
   <entry>
     <title>端口使用优化</title>
