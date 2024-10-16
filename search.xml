@@ -464,7 +464,7 @@
   </entry>
   <entry>
     <title>Code-server</title>
-    <url>/posts/56a357fba3b2/</url>
+    <url>/posts/4e7e0c96a7e8/</url>
     <content><![CDATA[<p>发现了一个极其方便的应用，这可要比在宝塔里编辑文件方便很多,发现自己最近在疯狂搞基础设施搭建：</p>
 <figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/coder/code-server</span><br></pre></td></tr></table></figure>
 
@@ -492,7 +492,9 @@
 <p>比宝塔传文件方便，如果在局域网内部署，还可以和多人协同，有人实时保存，别人那边会自动更新。部分功能可能需要配置HTTPS证书才能使用，在配置文件中添加即可：</p>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">bind-addr: 0.0.0.0:8080  <span class="comment"># Code Server 监听的地址和端口  </span></span><br><span class="line">auth: password           <span class="comment"># 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  </span></span><br><span class="line">password: yourpassword   <span class="comment"># 用于登录的密码               # 是否使用 HTTPS，默认为 false  </span></span><br><span class="line"><span class="comment"># cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  </span></span><br><span class="line"><span class="comment"># cert-key: /path/to/cert.key  # 如果使用 HTTPS，指定证书密钥路径  </span></span><br><span class="line"><span class="comment"># cert-host: &quot;&quot;</span></span><br></pre></td></tr></table></figure>
 
-<p>最好是信任CA证书，自签名证书也可以，但是部分功能也会不正常， 比如Mark Down预览插件就工作不正常。</p>
+<p>最好是信任CA证书，自签名证书也可以，但是部分功能也会不正常， 比如Mark Down预览插件就工作不正常，写完博客直接在vscode启动终端推送：</p>
+<p>![image-20241016225755914](D:\Documents\Blog\Environment Exploration\Code-server.assets\image-20241016225755914.png)</p>
+<p>都不需要去找自己的Token，直接在当前浏览器弹出github访问请求，输入密码验证即可，我喜欢这个。</p>
 ]]></content>
       <categories>
         <category>Environment Exploration</category>
