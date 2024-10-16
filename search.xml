@@ -481,14 +481,14 @@
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">code-server</span><br></pre></td></tr></table></figure>
 
 <p>浏览器打开对应URL：</p>
-<p><img src="https://anneballa.github.io/image-20241016172233577.png" alt="image-20241016172233577"></p>
+<p><img src="https://anneballa.github.io/pageimgsimage-20241016172233577.png" alt="image-20241016172233577"></p>
 <p>随后就像在用vscode一样：</p>
-<p><img src="https://anneballa.github.io/image-20241016172429962.png" alt="image-20241016172429962"></p>
+<p><img src="https://anneballa.github.io/pageimgsimage-20241016172429962.png" alt="image-20241016172429962"></p>
 <p>还支持文件拖拽直接上传，code-server不能以root用户身份运行，所以code-server可能会因为权限问题打不开某些文件或是上传不到某些目录，使用root用户执行命令即可：</p>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">chmod</span> a+w -R /source</span><br></pre></td></tr></table></figure>
 
 <p>目前有个缺点就是扩展仓库里看不到插件，只能凭着感觉去搜：</p>
-<p><img src="https://anneballa.github.io/image-20241016224140316.png" alt="image-20241016224140316"></p>
+<p><img src="https://anneballa.github.io/pageimgsimage-20241016224140316.png" alt="image-20241016224140316"></p>
 <p>比宝塔传文件方便，如果在局域网内部署，还可以和多人协同，有人实时保存，别人那边会自动更新。部分功能可能需要配置HTTPS证书才能使用，在配置文件中添加即可：</p>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">bind-addr: 0.0.0.0:8080  <span class="comment"># Code Server 监听的地址和端口  </span></span><br><span class="line">auth: password           <span class="comment"># 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  </span></span><br><span class="line">password: yourpassword   <span class="comment"># 用于登录的密码               # 是否使用 HTTPS，默认为 false  </span></span><br><span class="line"><span class="comment"># cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  </span></span><br><span class="line"><span class="comment"># cert-key: /path/to/cert.key  # 如果使用 HTTPS，指定证书密钥路径  </span></span><br><span class="line"><span class="comment"># cert-host: &quot;&quot;</span></span><br></pre></td></tr></table></figure>
 
