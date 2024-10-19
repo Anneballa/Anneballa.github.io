@@ -574,4 +574,378 @@
         <tag>Infrastructure</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Hyprland桌面环境构建与美化</title>
+    <url>/posts/e87e10c138a6/</url>
+    <content><![CDATA[<p>最近我尝试了一款名为 Hyprland 的 Linux 桌面环境，这个过程让我折腾了很久。由于对 Linux 底层原理不太了解，加上各种报错让我感到无力，我先后在 Debian、Kali、Parrot 和 Arch Linux 上尝试安装。比较麻烦是来源于它只支持 C++26，而目前 Kali 和 Parrot 只有 g++13，C++26 只有在 Debian 13 测试版和 Arch Linux 系列中可用。虽然尝试在 Debian 上从零构建，但总是因为一些未知原因报错，而 Arch Linux 则相对容易构建。然而，在日常工作和学习中，各种工具环境的报错让人头疼，尽管有文档支持。</p>
+<p>在 Arch 使用一段时间后，我渐渐的喜欢上了它，但紧接着就遇到了问题，一些工具报错甚至没有错误日志，只显示白屏。但是我仍然不想换回 Windows，因为我选择的笔记本似乎真的是为程序员设计的，装 Windows 时会出现死机和音箱破音的问题，而在 Linux 下这些问题都没有。</p>
+<p>尽管心灰意冷，我准备结束折腾之路，老老实实换回 Kali，但 Kali 安装其他软件时的依赖问题也让我头疼，尤其是 Kali 自带的工具太多，而我并不需要，感觉很别扭。最关键的是我居然发现当前版本的kali，我的笔记本安装不上。</p>
+<p>因此，我决定继续坚持使用 Arch，并记录下这段折腾的经历，以便在系统崩溃时能够恢复。声明一点，我的笔记本处理器为AMD6800H，且并无NVIDIA显卡。</p>
+<h3 id="系统安装"><a href="#系统安装" class="headerlink" title="系统安装"></a>系统安装</h3><p>Arch 系列的发行版有很多，它们都基于 Arch Linux，但各自有不同的特点和目标，在众多Archlinux发行版中，我选择了<strong>EndeavourOS</strong>,它并不需要Arch那样从0开始构建，可以让我避免花费更多的时间去做我已习惯的Arch系统安装命令，这里是官方镜像下载链接：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://endeavouros.com/</span><br></pre></td></tr></table></figure>
+
+<p>U盘镜像制作工具，我使用的软通牒：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://www.ultraiso.net/</span><br></pre></td></tr></table></figure>
+
+<p>制作好后插入U盘，进入操作系统安装程序启动页面：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015213407823.png" alt="image-20241015213407823"></p>
+<p>U盘启动默认是个KDE桌面环境，会自动弹出安装助手：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015213600122.png" alt="image-20241015213600122"></p>
+<p>左边在线安装，右边离线安装，我选择在线：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015213710886.png" alt="image-20241015213710886"></p>
+<p>建议选择英语，中文可能会因为最初没有字体的缘故出现乱码。</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015213808199.png" alt="image-20241015213808199"></p>
+<p>地区按自己喜好选额即可，键盘布局需要根据真实情况来，各个地区键盘布局会有些许差异：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015213923364.png" alt="image-20241015213923364"></p>
+<p>桌面环境我选择No Desktop:</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015214106819.png" alt="image-20241015214106819"></p>
+<p>因为我要使用Hyperland，要自己安装,接下来是软件选择，因为不装桌面，所以Desktop环境依赖包我不需要，Hyprland是基于Wayland，所以也不需要X11，我是AMD处理器，也就不需要Intel-ucode,我也不需要防火墙。也不需要yay。内核因为我是笔记本的缘故，散热一直是个问题，我选择内核LTS：</p>
+<ul>
+<li><p><strong>稳定性</strong>：LTS 内核经过广泛测试，通常在功耗管理和硬件兼容性方面表现良好。这对于笔记本的散热管理是有利的，因为稳定的功耗管理可以减少过热的风险。</p>
+</li>
+<li><p><strong>成熟的电源管理</strong>：LTS 内核通常包含成熟的电源管理功能，能够有效地管理 CPU 频率和电压，从而降低功耗和热量产生。</p>
+</li>
+<li><p><strong>性能优化较少</strong>：可能缺乏一些最新的性能优化，这在某些情况下可能导致稍高的功耗。</p>
+</li>
+</ul>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015222518344.png" alt="image-20241015222518344"></p>
+<p>使用Gurb引导：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015214653616.png" alt="image-20241015214653616"></p>
+<p>选择整个磁盘,交换分区开起来吧，虽然可能用不到，但是万一呢，不差那点大小：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015215216180.png" alt="image-20241015215216180"></p>
+<p>自定义安装属性：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015215332615.png" alt="image-20241015215332615"></p>
+<p>Next安装即可。安装完毕后会重启：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015220156819.png" alt="image-20241015220156819"></p>
+<p>可以打开ssh服务，然后从其他机器ssh连接登录，就可以复制粘贴命令了：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl start sshd.service</span><br></pre></td></tr></table></figure>
+
+<p>它会保留系统安装默认的普通内核，我喜欢干净一点，所以我决定把它删除：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -Rs linux linux-headers</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> grub-mkconfig -o /boot/grub/grub.cfg</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018130102378.png" alt="image-20241018130102378"></p>
+<h3 id="安装Hyprland"><a href="#安装Hyprland" class="headerlink" title="安装Hyprland"></a>安装Hyprland</h3><p>安装代理工具和paru，我不装yay是因为我喜欢paru,proxychains-ng可以很大程度解决网络问题：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -S proxychains-ng paru </span><br></pre></td></tr></table></figure>
+
+<p>Hyprland也有别人事先准备好的一键安装脚本，虽然可以自己重构，但是人家的脚本也就只构建了Hyprland，撑死加个VsCode，正好满足自己的极简主义电脑洁癖需求又可以让我轻松很多：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -S git</span><br><span class="line">git <span class="built_in">clone</span> --depth 1 https://github.com/prasanthrangan/hyprdots ~/HyDE</span><br><span class="line"><span class="built_in">cd</span> ~/HyDE/Scripts</span><br><span class="line">./install.sh</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015223619463.png" alt="image-20241015223619463"></p>
+<p>这个是系统引导Grub主题，就是开机看到的样式，因为我后边要自己换，所以随便选：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015223649916.png" alt="image-20241015223649916"></p>
+<p>shell我觉得还是zsh比较好用：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015223750404.png" alt="image-20241015223750404"></p>
+<p>这是多媒体处理，对于安全人员来说无所谓，根核心工作没多大关系，选第一个吧，第一个支持的多媒体格式多点：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015223937844.png" alt="image-20241015223937844"></p>
+<p>随后便开始了Hyprland的正式安装，随后会要求选择wlogout,<code>wlogout</code>是一个用于 Wayland 显示服务器协议的简单注销菜单工具。它通常用于提供一个图形化界面，允许用户在 Wayland 环境中选择注销、重启、关机、锁定屏幕等操作建议选择1，1是经过测试的稳定版，-git是从最新源码构建，可能会不稳定，我现在更倾向追求稳定：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015224054500.png" alt="image-20241015224054500"></p>
+<p>安装过程中遇到报错不必担心，脚本可以重复多次运行。会一直安装到选择初始主题，如果没到请选择不断运行install.sh，直到选择sddm主题位置，建议选择2：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015225207923.png" alt="image-20241015225207923"></p>
+<p>然后会问是否选择安装一些桌面应用：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015225338463.png" alt="image-20241015225338463"></p>
+<p>这些软件我基本上都没需求，后边需要我可以自己再装，所以我选择No。随后会发现图形界面打开。</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015225832909.png" alt="image-20241015225832909"></p>
+<h3 id="Hyprland美化"><a href="#Hyprland美化" class="headerlink" title="Hyprland美化"></a>Hyprland美化</h3><p>Hyprland配置文件基本都在个人用户目录.config&#x2F;hypr下。</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015225554103.png" alt="image-20241015225554103"></p>
+<h4 id="屏幕分辨率"><a href="#屏幕分辨率" class="headerlink" title="屏幕分辨率"></a>屏幕分辨率</h4><p>需要在有桌面环境的终端中输入以下命令可以查看自己的显示器名称，远程ssh会话执行这条命令是获取不到显示器名称的：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hyprctl monitors all</span><br></pre></td></tr></table></figure>
+
+<p>记住显示器名称和刷新率，更改屏幕分辨率，配置文件在以下位置：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">/home/annabelle/.config/hypr/monitors.conf</span><br></pre></td></tr></table></figure>
+
+<p>配置示例：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">monitor = Virtual-1, 1920x1080@60, 0x0, 1</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015230214311.png" alt="image-20241015230214311"></p>
+<p>脚本内部其实有一些预设主题，我根据自己的喜好先进行了一些挑选，决定在基础上对其进行美化：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015230731194.png" alt="image-20241015230731194"></p>
+<h4 id="壁纸"><a href="#壁纸" class="headerlink" title="壁纸"></a>壁纸</h4><p>如果要对一个系统配色进行美化，我觉得需要先确定主题主要配色，我先找到了一张壁纸，壁纸需要放在Hyprland主题壁纸目录下，不然每次重启系统都会被覆盖刷新：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> default_MAC.jpg ~/.config/hyde/themes/Catppuccin\ Mocha/wallpapers/</span><br></pre></td></tr></table></figure>
+
+<p>现在按Super+Shift+W，可以从中找到自己刚刚复制进去的图片作为壁纸。</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015231626829.png" alt="image-20241015231626829"></p>
+<h4 id="sddm主题"><a href="#sddm主题" class="headerlink" title="sddm主题"></a>sddm主题</h4><p>我看上了这个：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/minMelody/sddm-sequoia</span><br></pre></td></tr></table></figure>
+
+<p>安装：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/minMelody/sddm-sequoia.git</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> sddm-sequoia sequoia</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> sequoia /usr/share/sddm/themes/</span><br></pre></td></tr></table></figure>
+
+<p>更换sddm主题的图片：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">cp</span> ~/Pictures/default_MAC.jpg /usr/share/sddm/themes/sequoia/backgrounds/forest.jpg</span><br></pre></td></tr></table></figure>
+
+<p>更改sddm主题配置：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /usr/share/sddm/themes/sequoia/theme.conf</span><br></pre></td></tr></table></figure>
+
+<p>配置sddm主题分辨率：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015232414456.png" alt="image-20241015232414456"></p>
+<p>更改字体大小：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">fontSize=10</span><br></pre></td></tr></table></figure>
+
+<p>更改窗口背景颜色：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">popupsBackgroundColour=<span class="string">&quot;#1a1a1a&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>更改聚焦颜色：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">accentColour=<span class="string">&quot;#1a1a1a&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>将sddm主题更改为我所安装的：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /etc/sddm.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[Theme]</span><br><span class="line">Current=sequoia</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241015234325787.png" alt="image-20241015234325787"></p>
+<h4 id="Grub主题"><a href="#Grub主题" class="headerlink" title="Grub主题"></a>Grub主题</h4><p>安装Grub主题，我选择了这个：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/vinceliuice/grub2-themes.git</span><br></pre></td></tr></table></figure>
+
+<p>根据官方文档选择了喜欢的主题：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span> grub2-themes</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> ./install.sh -t vimix -c 2560x1600 -i white</span><br></pre></td></tr></table></figure>
+
+<p>替换Grub主题背景图片:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">cp</span> ~/Pictures/default_MAC.jpg /usr/share/grub/themes/vimix/background.jpg</span><br></pre></td></tr></table></figure>
+
+<h4 id="鼠标与图标主题"><a href="#鼠标与图标主题" class="headerlink" title="鼠标与图标主题"></a>鼠标与图标主题</h4><p>arch源中有个挺好看鼠标指针和图标主题：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">paru -S bibata-cursor-theme sweet-folders-icons-git</span><br></pre></td></tr></table></figure>
+
+<p>安装鼠标主题会报文件已存在，因为内置了一个白色鼠标主题：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016231555800.png" alt="image-20241016231555800"></p>
+<p>直接把目录整个删了就好：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">rm</span> -rf /usr/share/icons/Bibata-Modern-Ice</span><br></pre></td></tr></table></figure>
+
+<p>在重新运行安装命令，在主题文件中配置鼠标主题：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim ~/.config/hypr/themes/common.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">exec</span> = hyprctl setcursor Bibata-Modern-Classic 20</span><br><span class="line"><span class="built_in">exec</span> = gsettings <span class="built_in">set</span> org.gnome.desktop.interface cursor-theme <span class="string">&#x27;Bibata-Modern-Classic&#x27;</span></span><br><span class="line"><span class="built_in">exec</span> = gsettings <span class="built_in">set</span> org.gnome.desktop.interface cursor-size 20</span><br></pre></td></tr></table></figure>
+
+<p>更改图标主题：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim ~/.config/hypr/themes/theme.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">exec</span> = gsettings <span class="built_in">set</span> org.gnome.desktop.interface icon-theme <span class="string">&#x27;Sweet-Teal-Filled&#x27;</span></span><br><span class="line"><span class="built_in">exec</span> = gsettings <span class="built_in">set</span> org.gnome.desktop.interface gtk-theme <span class="string">&#x27;Graphite-Mono&#x27;</span></span><br><span class="line"><span class="built_in">exec</span> = gsettings <span class="built_in">set</span> org.gnome.desktop.interface color-scheme <span class="string">&#x27;prefer-dark&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>主题安装的插件有的受qt5配置影响，有的受qt6配置影响，里边也可以改。文件不止改这一处：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim ~/.config/hyde/themes/Catppuccin\ Mocha/hypr.theme</span><br></pre></td></tr></table></figure>
+
+<p>这里是主题应用文件，不然每次一更换主题，之前改的配置就都无了，没错，这个仓库主题切换是直接霸道的覆盖重写，不过它不会删除我新建的自定义项，只会覆盖重写它自己已有的项，简而言之就是主题默认的配置文件都在 ~&#x2F;.config&#x2F;hyde&#x2F;themes主题对应的文件中：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="string">$HOME/.config/hypr/themes/theme.conf|&gt;</span> <span class="string">$HOME/.config/hypr/themes/colors.conf</span></span><br><span class="line"><span class="string">exec</span> <span class="string">=</span> <span class="string">gsettings</span> <span class="string">set</span> <span class="string">org.gnome.desktop.interface</span> <span class="string">icon-theme</span> <span class="string">&#x27;Sweet-Teal-Filled&#x27;</span></span><br><span class="line"><span class="string">exec</span> <span class="string">=</span> <span class="string">gsettings</span> <span class="string">set</span> <span class="string">org.gnome.desktop.interface</span> <span class="string">gtk-theme</span> <span class="string">&#x27;Catppuccin-Mocha&#x27;</span></span><br><span class="line"><span class="string">exec</span> <span class="string">=</span> <span class="string">gsettings</span> <span class="string">set</span> <span class="string">org.gnome.desktop.interface</span> <span class="string">color-scheme</span> <span class="string">&#x27;prefer-dark&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="string">general</span> &#123;</span><br><span class="line">    <span class="string">gaps_in</span> <span class="string">=</span> <span class="number">3</span></span><br><span class="line">    <span class="string">gaps_out</span> <span class="string">=</span> <span class="number">8</span></span><br><span class="line">    <span class="string">border_size</span> <span class="string">=</span> <span class="number">2</span></span><br><span class="line">    <span class="string">col.active_border</span> <span class="string">=</span> <span class="string">rgba(fb003cff)</span> <span class="string">rgba(fb003cff)</span> <span class="string">45deg</span></span><br><span class="line">    <span class="string">col.inactive_border</span> <span class="string">=</span> <span class="string">rgba(fb003cff)</span> <span class="string">rgba(fb003cff)</span> <span class="string">45deg</span></span><br><span class="line">    <span class="string">layout</span> <span class="string">=</span> <span class="string">dwindle</span></span><br><span class="line">    <span class="string">resize_on_border</span> <span class="string">=</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="string">group</span> &#123;</span><br><span class="line">    <span class="string">col.border_active</span> <span class="string">=</span> <span class="string">rgba(eb6f92ff)</span> <span class="string">rgba(c4a7e7ff)</span> <span class="string">45deg</span></span><br><span class="line">    <span class="string">col.border_inactive</span> <span class="string">=</span> <span class="string">rgba(31748fcc)</span> <span class="string">rgba(9ccfd8cc)</span> <span class="string">45deg</span></span><br><span class="line">    <span class="string">col.border_locked_active</span> <span class="string">=</span> <span class="string">rgba(eb6f92ff)</span> <span class="string">rgba(c4a7e7ff)</span> <span class="string">45deg</span></span><br><span class="line">    <span class="string">col.border_locked_inactive</span> <span class="string">=</span> <span class="string">rgba(31748fcc)</span> <span class="string">rgba(9ccfd8cc)</span> <span class="string">45deg</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="string">decoration</span> &#123;</span><br><span class="line">    <span class="string">rounding</span> <span class="string">=</span> <span class="number">10</span></span><br><span class="line">    <span class="string">drop_shadow</span> <span class="string">=</span> <span class="literal">false</span></span><br><span class="line"></span><br><span class="line">    <span class="string">blur</span> &#123;</span><br><span class="line">        <span class="string">enabled</span> <span class="string">=</span> <span class="literal">yes</span></span><br><span class="line">        <span class="string">size</span> <span class="string">=</span> <span class="number">6</span></span><br><span class="line">        <span class="string">passes</span> <span class="string">=</span> <span class="number">3</span></span><br><span class="line">        <span class="string">new_optimizations</span> <span class="string">=</span> <span class="string">on</span></span><br><span class="line">        <span class="string">ignore_opacity</span> <span class="string">=</span> <span class="string">on</span></span><br><span class="line">        <span class="string">xray</span> <span class="string">=</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment"># unset会使waybar除了工具栏外全透明</span></span><br><span class="line"><span class="string">layerrule</span> <span class="string">=</span> <span class="string">unset,waybar</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="Kitty"><a href="#Kitty" class="headerlink" title="Kitty"></a>Kitty</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">vim ~/.config/kitty/theme.conf</span><br></pre></td></tr></table></figure>
+
+<p>这是我的配色文件：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># Optimized Kitty Theme with Background #1A1A1A  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 基本颜色  </span></span><br><span class="line"><span class="string">foreground</span>              <span class="comment">#FFFFFF </span></span><br><span class="line"><span class="string">background</span>              <span class="comment">#1A1A1A  </span></span><br><span class="line"><span class="string">selection_foreground</span>    <span class="comment">#1A1A1A  </span></span><br><span class="line"><span class="string">selection_background</span>    <span class="comment">#4A4A4A  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 光标颜色  </span></span><br><span class="line"><span class="string">cursor</span>                  <span class="comment">#FFFFFF  </span></span><br><span class="line"><span class="string">cursor_text_color</span>       <span class="comment">#1A1A1A  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 鼠标悬停时URL下划线颜色  </span></span><br><span class="line"><span class="string">url_color</span>               <span class="comment">#8FBFDF  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Kitty窗口边框颜色  </span></span><br><span class="line"><span class="string">active_border_color</span>     <span class="comment">#8FBFDF  </span></span><br><span class="line"><span class="string">inactive_border_color</span>   <span class="comment">#4A4A4A  </span></span><br><span class="line"><span class="string">bell_border_color</span>       <span class="comment">#FF9999  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># OS窗口标题栏颜色  </span></span><br><span class="line"><span class="string">wayland_titlebar_color</span> <span class="string">system</span>  </span><br><span class="line"><span class="string">macos_titlebar_color</span> <span class="string">system</span>  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 标签栏颜色  </span></span><br><span class="line"><span class="string">active_tab_foreground</span>   <span class="comment">#1A1A1A  </span></span><br><span class="line"><span class="string">active_tab_background</span>   <span class="comment">#8FBFDF  </span></span><br><span class="line"><span class="string">inactive_tab_foreground</span> <span class="comment">#D3D3D3  </span></span><br><span class="line"><span class="string">inactive_tab_background</span> <span class="comment">#333333  </span></span><br><span class="line"><span class="string">tab_bar_background</span>      <span class="comment">#1A1A1A  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 标记的颜色（终端中的标记文本）  </span></span><br><span class="line"><span class="string">mark1_foreground</span> <span class="comment">#1A1A1A  </span></span><br><span class="line"><span class="string">mark1_background</span> <span class="comment">#A0C4FF  </span></span><br><span class="line"><span class="string">mark2_foreground</span> <span class="comment">#1A1A1A  </span></span><br><span class="line"><span class="string">mark2_background</span> <span class="comment">#C4A7E7  </span></span><br><span class="line"><span class="string">mark3_foreground</span> <span class="comment">#1A1A1A  </span></span><br><span class="line"><span class="string">mark3_background</span> <span class="comment">#89DCEB  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 16种终端颜色  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 黑色  </span></span><br><span class="line"><span class="string">color0</span> <span class="comment">#3A3A3A  </span></span><br><span class="line"><span class="string">color8</span> <span class="comment">#4A4A4A  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 红色  </span></span><br><span class="line"><span class="string">color1</span> <span class="comment">#FF6B6B  </span></span><br><span class="line"><span class="string">color9</span> <span class="comment">#FF8B8B  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 绿色  </span></span><br><span class="line"><span class="string">color2</span> <span class="comment">#A3BE8C  </span></span><br><span class="line"><span class="string">color10</span> <span class="comment">#B5D99C  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 淡橙色  </span></span><br><span class="line"><span class="string">color3</span> <span class="comment">#FFB347  </span></span><br><span class="line"><span class="string">color11</span> <span class="comment">#FFD27F  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 淡绿色  </span></span><br><span class="line"><span class="string">color4</span> <span class="comment">#A0C4FF  </span></span><br><span class="line"><span class="string">color12</span> <span class="comment">#B0D4FF  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 洋红  </span></span><br><span class="line"><span class="string">color5</span> <span class="comment">#C4A7E7  </span></span><br><span class="line"><span class="string">color13</span> <span class="comment">#D4B7F7  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 青色  </span></span><br><span class="line"><span class="string">color6</span> <span class="comment">#89DCEB  </span></span><br><span class="line"><span class="string">color14</span> <span class="comment">#A0EFFF  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 白色  </span></span><br><span class="line"><span class="string">color7</span> <span class="comment">#E5E9F0  </span></span><br><span class="line"><span class="string">color15</span> <span class="comment">#D8DEE9  </span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 字体设置  </span></span><br><span class="line"><span class="string">font_size</span> <span class="number">12.0</span></span><br></pre></td></tr></table></figure>
+
+<p>我选择去掉Kitty的终端透明效果：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim .config/hypr/windowrules.conf</span><br></pre></td></tr></table></figure>
+
+<p>注释：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment">#windowrulev2 = opacity 0.80 0.80,class:^(kitty)$</span></span><br></pre></td></tr></table></figure>
+
+<p>去除zsh每次启动出现得了logo，我不喜欢这个：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim ~/.zshrc</span><br></pre></td></tr></table></figure>
+
+<p>把最后一行的这句注释：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#pokemon-colorscripts --no-title -r 1,3,6</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="Rofi"><a href="#Rofi" class="headerlink" title="Rofi"></a>Rofi</h4><p>按快捷键Super+A可以呼出Rofi，主题配色文件在以下路径：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim ~/.config/rofi/theme.rasi</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">* &#123;  </span><br><span class="line">    main-bg:            <span class="comment">#1A1A1Aff;  </span></span><br><span class="line">    main-fg:            <span class="comment">#FFFFFFff;  </span></span><br><span class="line">    main-br:            <span class="comment">#1A1A1Aff;  </span></span><br><span class="line">    main-ex:            <span class="comment">#FFFFFFff;  </span></span><br><span class="line">    select-bg:          <span class="comment">#1A1A1Aff;  </span></span><br><span class="line">    select-fg:          <span class="comment">#FFFFFFff;  </span></span><br><span class="line">    separatorcolor:     transparent;  </span><br><span class="line">    border-color:       transparent;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="Swaylockp"><a href="#Swaylockp" class="headerlink" title="Swaylockp"></a>Swaylockp</h4><p>是锁屏，配置文件在以下路径：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim .config/swaylock/config</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="string">daemonize</span>                     <span class="comment"># 守护进程方式运行  </span></span><br><span class="line"><span class="string">show-failed-attempts</span>          <span class="comment"># 显示失败次数  </span></span><br><span class="line"><span class="string">clock</span>                         <span class="comment"># 显示时钟  </span></span><br><span class="line"><span class="string">screenshot</span>                    <span class="comment"># 截屏作为背景  </span></span><br><span class="line"><span class="string">effect-blur=15x15</span>             <span class="comment"># 15x15 的模糊效果  </span></span><br><span class="line"><span class="string">effect-vignette=1:1</span>           <span class="comment"># 强烈的晕影效果  </span></span><br><span class="line"><span class="string">color=1f1d2e80</span>                <span class="comment"># 背景主色彩，深色调带透明度  </span></span><br><span class="line"><span class="string">font=&quot;Inter&quot;</span>                  <span class="comment"># 字体设置，使用 &quot;Inter&quot; 字体  </span></span><br><span class="line"><span class="string">indicator</span>                     <span class="comment"># 显示指示器  </span></span><br><span class="line"><span class="string">indicator-radius=200</span>          <span class="comment"># 指示器半径设置为 200  </span></span><br><span class="line"><span class="string">indicator-thickness=20</span>        <span class="comment"># 指示器厚度设置为 20  </span></span><br><span class="line"></span><br><span class="line"><span class="string">line-color=1a1a1a</span>             <span class="comment"># 线的颜色，深灰色  </span></span><br><span class="line"><span class="string">ring-color=ffffff</span>              <span class="comment"># 环的颜色，白色  </span></span><br><span class="line"><span class="string">inside-color=1a1a1a</span>           <span class="comment"># 内部颜色，深灰色  </span></span><br><span class="line"><span class="string">key-hl-color=1a1a1a</span>           <span class="comment"># 按键高亮颜色，深灰色  </span></span><br><span class="line"><span class="string">separator-color=00000000</span>      <span class="comment"># 分隔线颜色，完全透明  </span></span><br><span class="line"><span class="string">text-color=ffffff</span>             <span class="comment"># 文字颜色，白色  </span></span><br><span class="line"><span class="string">text-caps-lock-color=&quot;&quot;</span>       <span class="comment"># 大写锁定色，保持不变  </span></span><br><span class="line"></span><br><span class="line"><span class="string">line-ver-color=1a1a1a</span>         <span class="comment"># 验证中线条颜色，深灰色  </span></span><br><span class="line"><span class="string">ring-ver-color=1a1a1a</span>         <span class="comment"># 验证中环颜色，深灰色  </span></span><br><span class="line"><span class="string">inside-ver-color=1a1a1a</span>       <span class="comment"># 验证中内部颜色，深灰色  </span></span><br><span class="line"><span class="string">text-ver-color=ffffff</span>         <span class="comment"># 验证中文字颜色，白色  </span></span><br><span class="line"></span><br><span class="line"><span class="string">ring-wrong-color=31748f</span>       <span class="comment"># 错误环颜色，淡蓝色  </span></span><br><span class="line"><span class="string">text-wrong-color=31748f</span>       <span class="comment"># 错误文字颜色，淡蓝色  </span></span><br><span class="line"><span class="string">inside-wrong-color=1f1d2e</span>     <span class="comment"># 错误内部颜色，较深色调  </span></span><br><span class="line"></span><br><span class="line"><span class="string">inside-clear-color=1f1d2e</span>     <span class="comment"># 清除内部颜色，与背景协调  </span></span><br><span class="line"><span class="string">text-clear-color=e0def4</span>       <span class="comment"># 清除中文字颜色，柔和色调  </span></span><br><span class="line"><span class="string">ring-clear-color=9ccfd8</span>       <span class="comment"># 清除环颜色，浅蓝色  </span></span><br><span class="line"><span class="string">line-clear-color=1f1d2e</span>       <span class="comment"># 清除线条颜色，与背景协调  </span></span><br><span class="line"><span class="string">line-wrong-color=1f1d2e</span>       <span class="comment"># 错误线条颜色，与背景协调  </span></span><br><span class="line"></span><br><span class="line"><span class="string">bs-hl-color=31748f</span>            <span class="comment"># 删除键高亮颜色，淡蓝色  </span></span><br><span class="line"><span class="string">grace=2</span>                       <span class="comment"># 延迟时间，设置为 2 秒  </span></span><br><span class="line"><span class="string">grace-no-mouse</span>                <span class="comment"># 鼠标不触发延迟  </span></span><br><span class="line"><span class="string">grace-no-touch</span>                <span class="comment"># 触屏不触发延迟  </span></span><br><span class="line"></span><br><span class="line"><span class="string">datestr=%a,</span> <span class="string">%B</span> <span class="string">%e</span>             <span class="comment"># 日期格式  </span></span><br><span class="line"><span class="string">timestr=%I:%M</span> <span class="string">%p</span>              <span class="comment"># 时间格式  </span></span><br><span class="line"><span class="string">fade-in=0.3</span>                   <span class="comment"># 渐入效果时间，设置为 0.3 秒  </span></span><br><span class="line"><span class="string">ignore-empty-password</span>          <span class="comment"># 忽略空密码</span></span><br></pre></td></tr></table></figure>
+
+<p>文件中是不能放注释的:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">daemonize</span><br><span class="line">show-failed-attempts</span><br><span class="line">clock</span><br><span class="line">screenshot</span><br><span class="line">effect-blur=15x15</span><br><span class="line">effect-vignette=1:1</span><br><span class="line">color=1f1d2e80</span><br><span class="line">font=<span class="string">&quot;Inter&quot;</span></span><br><span class="line">indicator</span><br><span class="line">indicator-radius=200</span><br><span class="line">indicator-thickness=20</span><br><span class="line">line-color=1a1a1a</span><br><span class="line">ring-color=ffffff</span><br><span class="line">inside-color=1a1a1a</span><br><span class="line">key-hl-color=1a1a1a</span><br><span class="line">separator-color=00000000</span><br><span class="line">text-color=ffffff</span><br><span class="line">text-caps-lock-color=<span class="string">&quot;&quot;</span></span><br><span class="line">line-ver-color=1a1a1a</span><br><span class="line">ring-ver-color=1a1a1a</span><br><span class="line">inside-ver-color=1a1a1a</span><br><span class="line">text-ver-color=ffffff</span><br><span class="line">ring-wrong-color=31748f</span><br><span class="line">text-wrong-color=31748f</span><br><span class="line">inside-wrong-color=1f1d2e</span><br><span class="line">inside-clear-color=1f1d2e</span><br><span class="line">text-clear-color=e0def4</span><br><span class="line">ring-clear-color=9ccfd8</span><br><span class="line">line-clear-color=1f1d2e</span><br><span class="line">line-wrong-color=1f1d2e</span><br><span class="line">bs-hl-color=31748f</span><br><span class="line">grace=2</span><br><span class="line">grace-no-mouse</span><br><span class="line">grace-no-touch</span><br><span class="line">datestr=%a, %B %e</span><br><span class="line">timestr=%I:%M %p</span><br><span class="line">fade-in=0.3</span><br><span class="line">ignore-empty-password</span><br></pre></td></tr></table></figure>
+
+<h4 id="Waybar"><a href="#Waybar" class="headerlink" title="Waybar"></a>Waybar</h4><p>就是任务面板，颜色配置文件在：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim .config/waybar/theme.css</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="string">@define-color</span> <span class="string">bar-bg</span> <span class="string">rgba(0,</span> <span class="number">0</span><span class="string">,</span> <span class="number">0</span><span class="string">,</span> <span class="number">0</span><span class="string">);</span></span><br><span class="line"></span><br><span class="line"><span class="string">@define-color</span> <span class="string">main-bg</span> <span class="comment">#1A1A1A;</span></span><br><span class="line"><span class="string">@define-color</span> <span class="string">main-fg</span> <span class="comment">#D3D3D3;</span></span><br><span class="line"></span><br><span class="line"><span class="string">@define-color</span> <span class="string">wb-act-bg</span> <span class="comment">#D3D3D3;</span></span><br><span class="line"><span class="string">@define-color</span> <span class="string">wb-act-fg</span> <span class="comment">#1A1A1A;</span></span><br><span class="line"></span><br><span class="line"><span class="string">@define-color</span> <span class="string">wb-hvr-bg</span> <span class="comment">#D3D3D3;</span></span><br><span class="line"><span class="string">@define-color</span> <span class="string">wb-hvr-fg</span> <span class="comment">#1A1A1A;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="工作环境"><a href="#工作环境" class="headerlink" title="工作环境"></a>工作环境</h3><p>接下来安装一下自己可能用的软件工具，我觉得有必要先设置Go代理：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">go <span class="built_in">env</span> -w GO111MODULE=on</span><br><span class="line">go <span class="built_in">env</span> -w GOPROXY=https://goproxy.cn,direct</span><br></pre></td></tr></table></figure>
+
+<h4 id="输入法和中文字体"><a href="#输入法和中文字体" class="headerlink" title="输入法和中文字体"></a>输入法和中文字体</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -S adobe-source-han-serif-cn-fonts adobe-source-han-sans-cn-fonts wqy-zenhei wqy-microhei noto-fonts-cjk noto-fonts-emoji noto-fonts-extra ttf-dejavu fcitx5-im fcitx5-chinese-addons</span><br></pre></td></tr></table></figure>
+
+<p>输入法皮肤：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p ~/.local/share/fcitx5/themes/dracula</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/drbbr/fcitx5-dracula-theme.git ~/.local/share/fcitx5/themes/dracula</span><br></pre></td></tr></table></figure>
+
+<h4 id="日常软件包依赖"><a href="#日常软件包依赖" class="headerlink" title="日常软件包依赖"></a>日常软件包依赖</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -S eog telegram-desktop openvpn python-pipx python-pip</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">paru -S clash-verge-rev google-chrome typora hyprshot</span><br></pre></td></tr></table></figure>
+
+<p>hyprshot是截图工具，命令行的，可以指定快捷键在</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim .config/hypr/keybindings.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">bind</span> = Ctrl+Alt, A, <span class="built_in">exec</span>, hyprshot -m region --clipboard-only</span><br></pre></td></tr></table></figure>
+
+<p><strong>–clipboard-only</strong>参数为只复制到剪切板，不进行本地保存。</p>
+<h4 id="开发环境"><a href="#开发环境" class="headerlink" title="开发环境"></a>开发环境</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -S pycharm-community-edition intellij-idea-community-edition mousepad dpkg  </span><br></pre></td></tr></table></figure>
+
+<h4 id="JDK版本管理"><a href="#JDK版本管理" class="headerlink" title="JDK版本管理"></a>JDK版本管理</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk/bin/java 1717</span><br><span class="line"><span class="built_in">sudo</span> update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk/bin/java 2121</span><br><span class="line"><span class="built_in">sudo</span> update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-11-openjdk/bin/java 1111</span><br></pre></td></tr></table></figure>
+
+<h4 id="渗透依赖以及工具"><a href="#渗透依赖以及工具" class="headerlink" title="渗透依赖以及工具"></a>渗透依赖以及工具</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -S nmap masscan rustscan exploitdb openbsd-netcat hashcat john impacket <span class="built_in">bind</span> hping fping net-snmp swaks nikto pocl sqlmap tcpdump hydra sqlitebrowser wireshark-qt </span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">paru -S dnsenum2 dnsmap maltego spiderfoot subfinder fscan wafw00f smtp-user-enum-git nbtscan webshells-git wordlists cewl-git crunch weevely ruby-evil-winrm netexec responder smbmap dirsearch feroxbuster gobuster whatweb neo4j-community bloodhound nuclei</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/dirkjanm/BloodHound.py.git</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/ly4k/Certipy.git</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://gitlab.archlinux.org/archlinux/packaging/packages/python-pyppeteer.git</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">paru -S theharvester-git --mflags <span class="string">&quot;--skipchecks&quot;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://github.com/commixproject/commix.git</span><br></pre></td></tr></table></figure>
+
+<h4 id="QEMU-KVM"><a href="#QEMU-KVM" class="headerlink" title="QEMU&#x2F;KVM"></a>QEMU&#x2F;KVM</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> pacman -Syu --needed virt-manager qemu-desktop libvirt edk2-ovmf dnsmasq vde2 bridge-utils iptables-nft dmidecode</span><br><span class="line"><span class="built_in">sudo</span> pacman -S qemu-full qemu-img  virt-install  virt-viewer swtpm guestfs-tools libosinfo</span><br><span class="line">paru -S tuned</span><br></pre></td></tr></table></figure>
+
+<p>AMD SEV支持</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;options kvm_amd sev=1&quot;</span> &gt;&gt; /etc/modprobe.d/amd-sev.conf</span><br><span class="line">reboot</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">enable</span> libvirtd.service</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl start libvirtd.service</span><br></pre></td></tr></table></figure>
+
+<p>将当前用户添加到libvirt，kvm组可以避免每次启动切root：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> usermod -aG libvirt,kvm <span class="variable">$USER</span></span><br></pre></td></tr></table></figure>
+
+<p>开启TPM</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">enable</span> --now tuned.service</span><br></pre></td></tr></table></figure>
+
+<p>优化（不知道干嘛的，但是文档里有，Chatgpt也说好，那就开呗）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> tuned-adm profile virtual-host</span><br></pre></td></tr></table></figure>
+
+<h4 id="自定义启动项"><a href="#自定义启动项" class="headerlink" title="自定义启动项"></a>自定义启动项</h4><p>BurpSuite：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="string">&quot;/usr/lib/jvm/jdk-22-oracle-x64/bin/java&quot;</span> <span class="string">&quot;--add-opens=java.desktop/javax.swing=ALL-UNNAMED&quot;</span> <span class="string">&quot;--add-opens=java.base/java.lang=ALL-UNNAMED&quot;</span> <span class="string">&quot;--add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED&quot;</span> <span class="string">&quot;--add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED&quot;</span> <span class="string">&quot;--add-opens=java.base/jdk.internal.org.objectweb.asm.Opcodes=ALL-UNNAMED&quot;</span> <span class="string">&quot;-javaagent:burploader.jar&quot;</span> <span class="string">&quot;-javaagent:burpsuitloader-3.7.17-all.jar&quot;</span> <span class="string">&quot;-noverify&quot;</span> <span class="string">&quot;-jar&quot;</span> <span class="string">&quot;/home/annabelle/SecTools/BurpSuite/burpsuite_pro_v2024.7.3.jar&quot;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim BurpSuite.desktop</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[Desktop Entry]</span><br><span class="line">Comment=</span><br><span class="line">Exec=<span class="built_in">env</span> XCURSOR_SIZE=20 bash /home/annabelle/SecTools/BurpSuite/StartBurpSuite</span><br><span class="line">GenericName=</span><br><span class="line">Icon=/home/annabelle/SecTools/BurpSuite/burpico.png</span><br><span class="line">MimeType=</span><br><span class="line">Name=BurpSuite</span><br><span class="line">Path=/home/annabelle/SecTools/BurpSuite/</span><br><span class="line">StartupNotify=<span class="literal">true</span></span><br><span class="line">Terminal=<span class="literal">false</span></span><br><span class="line">TerminalOptions=</span><br><span class="line">Type=Application</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> BurpSuite.desktop ~/.local/share/applications</span><br></pre></td></tr></table></figure>
+
+<p>CobaltStrike:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim StartCobaltStrike</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">/usr/lib/jvm/java-17-openjdk/bin/java -XX:ParallelGCThreads=4 -XX:+AggressiveHeap -XX:+UseParallelGC -javaagent:uHook.jar -jar cobaltstrike-client.jar $*%</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim CobaltSrike.desktop</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[Desktop Entry]</span><br><span class="line">Comment=</span><br><span class="line">Exec=<span class="built_in">env</span> XCURSOR_SIZE=20 bash /home/annabelle/SecTools/CobaltSrike/Client/StartCobaltStrike</span><br><span class="line">GenericName=</span><br><span class="line">Icon=/home/annabelle/SecTools/CobaltSrike/CobaltStrike.jpeg</span><br><span class="line">MimeType=</span><br><span class="line">Name=CobaltSrike</span><br><span class="line">Path=/home/annabelle/SecTools/CobaltSrike/Client</span><br><span class="line">StartupNotify=<span class="literal">true</span></span><br><span class="line">Terminal=<span class="literal">false</span></span><br><span class="line">TerminalOptions=</span><br><span class="line">Type=Application</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> CobaltSrike.desktop ~/.local/share/applications</span><br></pre></td></tr></table></figure>
+
+<p>Behinder:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim StartBehinder</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -jar /home/annabelle/SecTools/Webshells/Behinder/Behinder.jar</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim Behinder.desktop</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[Desktop Entry]</span><br><span class="line">Comment=</span><br><span class="line">Exec=<span class="built_in">env</span> XCURSOR_SIZE=20 bash /home/annabelle/SecTools/Webshells/Behinder/StartBehinder</span><br><span class="line">GenericName=</span><br><span class="line">Icon=/home/annabelle/SecTools/Webshells/Behinder/icon1.png</span><br><span class="line">MimeType=</span><br><span class="line">Name=Behinder</span><br><span class="line">Path=/home/annabelle/SecTools/Webshells/Behinder</span><br><span class="line">StartupNotify=<span class="literal">true</span></span><br><span class="line">Terminal=<span class="literal">false</span></span><br><span class="line">TerminalOptions=</span><br><span class="line">Type=Application</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> Behinder.desktop ~/.local/share/applications</span><br></pre></td></tr></table></figure>
+
+<p>Godzilla:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim StartGodzilla</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">java -jar /home/annabelle/SecTools/Webshells/Godzilla/godzilla.jar</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim Godzilla.desktop</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[Desktop Entry]</span><br><span class="line">Comment=</span><br><span class="line">Exec=<span class="built_in">env</span> XCURSOR_SIZE=20 bash /home/annabelle/SecTools/Webshells/Godzilla/StartGodzilla</span><br><span class="line">GenericName=</span><br><span class="line">Icon=/home/annabelle/SecTools/Webshells/Godzilla/icon.png</span><br><span class="line">MimeType=</span><br><span class="line">Name=Godzilla</span><br><span class="line">Path=/home/annabelle/SecTools/Webshells/Godzilla</span><br><span class="line">StartupNotify=<span class="literal">true</span></span><br><span class="line">Terminal=<span class="literal">false</span></span><br><span class="line">TerminalOptions=</span><br><span class="line">Type=Application</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> Godzilla.desktop ~/.local/share/applications</span><br></pre></td></tr></table></figure>
+
+<h4 id="窗口浮动"><a href="#窗口浮动" class="headerlink" title="窗口浮动"></a>窗口浮动</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line"># Customize</span><br><span class="line">windowrulev2 = float,class:^(clash-verge)$</span><br><span class="line">windowrulev2 = size 50% 50%,class:^(clash-verge)$</span><br><span class="line">windowrulev2 = float,title:^(Telegram)$</span><br><span class="line">windowrulev2 = size 60% 60%,title:^(Telegram)$</span><br><span class="line">windowrulev2 = float,class:^(mousepad)$</span><br><span class="line">windowrulev2 = size 60% 30%,class:^(mousepad)$</span><br></pre></td></tr></table></figure>
+
+<p>初步就这样了。</p>
+<h3 id="备份配置文件"><a href="#备份配置文件" class="headerlink" title="备份配置文件"></a>备份配置文件</h3><p>初始化git目录：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> backup</span><br><span class="line">git init</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/hyde .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/hypr .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/waybar .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/kitty .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/Kvantum .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/swaylock .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.config/rofi .</span><br><span class="line"><span class="built_in">cp</span> ~/.zshrc .</span><br><span class="line"><span class="built_in">cp</span> -r ~/.local/share/fcitx5/themes/dracula .</span><br><span class="line"><span class="built_in">cp</span> -rf /usr/share/sddm/themes/sequoia .</span><br></pre></td></tr></table></figure>
+
+<p>提交Github：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">git config --global user.email <span class="string">&quot;your@email&quot;</span></span><br><span class="line">git config --global user.name <span class="string">&quot;your.name&quot;</span></span><br><span class="line">git add .</span><br><span class="line">git commit -m <span class="string">&quot;Config Update&quot;</span> </span><br><span class="line">git branch -M main</span><br><span class="line">git remote add origin https://github.com/Anneballa/Hyprland-Configs.git</span><br><span class="line">git push -u origin main</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Environment Exploration</category>
+      </categories>
+      <tags>
+        <tag>Infrastructure</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Tailscale组网</title>
+    <url>/posts/dbf8cae7e0cb/</url>
+    <content><![CDATA[<p>利用Tailscale构建自己的NAT网络方案：</p>
+<p><a href="https://tailscale.com/">Tailscale</a> 是一个用户友好的 VPN 服务，允许用户在不同设备之间创建安全的网络连接。它利用 WireGuard 协议的高效性和安全性，提供了一个易于配置和管理的虚拟专用网络，它通过简化网络配置和增强安全性，使得创建和管理虚拟网络变得更加高效和便捷。</p>
+<h4 id="主要特点"><a href="#主要特点" class="headerlink" title="主要特点"></a>主要特点</h4><ol>
+<li><strong>易于设置</strong>：<ul>
+<li>Tailscale 的安装和配置非常简单。用户只需在设备上安装客户端应用程序，并通过一个简单的登录过程即可连接到网络。</li>
+</ul>
+</li>
+<li><strong>自动化网络配置</strong>：<ul>
+<li>Tailscale 自动处理网络配置和防火墙设置，用户无需手动配置复杂的网络参数。</li>
+</ul>
+</li>
+<li><strong>跨平台支持</strong>：<ul>
+<li>支持多种操作系统，包括 Windows、macOS、Linux、iOS 和 Android，使得不同设备之间的连接变得无缝。</li>
+</ul>
+</li>
+<li><strong>安全性</strong>：<ul>
+<li>基于 WireGuard 协议，Tailscale 提供了强大的加密和安全性，确保数据在传输过程中的安全。</li>
+</ul>
+</li>
+<li><strong>去中心化架构</strong>：<ul>
+<li>Tailscale 使用点对点连接，减少了对中心服务器的依赖，提高了连接速度和可靠性。</li>
+</ul>
+</li>
+<li><strong>访问控制</strong>：<ul>
+<li>提供细粒度的访问控制，用户可以轻松管理谁可以访问网络中的哪些资源。</li>
+</ul>
+</li>
+</ol>
+<h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><ul>
+<li><strong>远程工作</strong>：帮助分布式团队安全地访问公司内部资源。</li>
+<li><strong>家庭网络</strong>：在家庭设备之间创建安全连接。</li>
+<li><strong>开发者环境</strong>：为开发者提供安全的测试和开发环境。</li>
+</ul>
+<p>并且对于个人用户来说是免费的：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241017234516754.png" alt="image-20241017234516754"></p>
+<p>这是来自于官方手册，为了良好的使用，可以将服务器开启允许IP转发，如果您的 Linux 系统有一个<code>/etc/sysctl.d</code>目录，请使用：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv4.ip_forward = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.d/99-tailscale.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv6.conf.all.forwarding = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.d/99-tailscale.conf</span><br><span class="line"><span class="built_in">sudo</span> sysctl -p /etc/sysctl.d/99-tailscale.conf</span><br></pre></td></tr></table></figure>
+
+<p>否则使用：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv4.ip_forward = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv6.conf.all.forwarding = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.conf</span><br><span class="line"><span class="built_in">sudo</span> sysctl -p /etc/sysctl.conf</span><br></pre></td></tr></table></figure>
+
+<p>启动IP转发后可以使用命令来启动子网路由，</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo tailscale up --advertise-routes=192.168.233.0/24</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong><code>--advertise-routes=192.168.233.0/24</code></strong>: 这个选项用于指定当前节点将向 Tailscale 网络中的其他节点“广告”或“广播”的路由。<strong>广告路由的作用</strong>是 其他 Tailscale 节点可以通过这个节点访问这两个子网中的设备。这通常用于连接不同的网络或子网，使得它们可以通过 Tailscale 网络进行通信。</li>
+</ul>
+<h4 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h4><p>使用邮箱注册登录账号，下载符合自己平台的安装程序：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018090828145.png" alt="image-20241018090828145"></p>
+<p>安装好后，可以点击自己的admin console，我喜欢这个界面风格设计：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018091416751.png" alt="image-20241018091416751"></p>
+<p>要添加设备，可以点击右上角Add device，这里选择添加服务器，因为服务器可以选择做出口节点，这里只是赋予服务器可以用来做出口节点的属性：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018101204183.png" alt="image-20241018101204183"></p>
+<p>随后点击下边的生成脚本：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018101309776.png" alt="image-20241018101309776"></p>
+<p>复制命令到服务器上执行，安装完成后会自动启动。如果要将服务器作为出口IP，拿windows举例，右键任务栏的图标里即可切换出口节点：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241019010124252.png" alt="image-20241019010124252"></p>
+]]></content>
+      <categories>
+        <category>Environment Exploration</category>
+      </categories>
+      <tags>
+        <tag>Infrastructure</tag>
+      </tags>
+  </entry>
 </search>
