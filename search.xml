@@ -1888,4 +1888,46 @@
         <tag>Infrastructure</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Proving Grounds - Clue</title>
+    <url>/posts/106fd3479ede/</url>
+    <content><![CDATA[<h3 id="Proving-Grounds-Clue"><a href="#Proving-Grounds-Clue" class="headerlink" title="Proving Grounds - Clue"></a>Proving Grounds - Clue</h3><h3 id="Recon"><a href="#Recon" class="headerlink" title="Recon"></a>Recon</h3><p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020182828090.png" alt="image-20241020182828090"></p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020182912558.png" alt="image-20241020182912558"></p>
+<h3 id="GetShell"><a href="#GetShell" class="headerlink" title="GetShell"></a>GetShell</h3><p>打开3000端口：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020183030327.png" alt="image-20241020183030327"></p>
+<p>右上角是一个CQL查询的接口，页面显示版本号为3.11.13，搜索漏洞：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020183226885.png" alt="image-20241020183226885"></p>
+<p>这个版本号不一定是Cassandra的版本号，有可能是那个集群id的版本，所以exploit DB中的文件读取poc可以尝试一下：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020183622409.png" alt="image-20241020183622409"></p>
+<p>目标机器上存在两个用户，cassie与anthony。根据漏洞脚本的提示：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020183953533.png" alt="image-20241020183953533"></p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020184052091.png" alt="image-20241020184052091"></p>
+<p>读取&#x2F;proc&#x2F;self&#x2F;cmdline:</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020184535085.png" alt="image-20241020184535085"></p>
+<p>没什么效果。搜素8021上的服务指纹，找到一个命令注入：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020184653024.png" alt="image-20241020184653024"></p>
+<p>但是他需要密码：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020185056891.png" alt="image-20241020185056891"></p>
+<p>所以大概思路就是，利用文件读取漏洞却尝试读取密码，最后发现密码文件在：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020185234136.png" alt="image-20241020185234136"></p>
+<p>对RCE利用脚本进行更改：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020185400958.png" alt="image-20241020185400958"></p>
+<p>反弹shell：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020185746947.png" alt="image-20241020185746947"></p>
+<p>发现3000端口才能出站。升级交互式shell：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020185955133.png" alt="image-20241020185955133"></p>
+<p>发现用户ssh密钥：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020190208623.png" alt="image-20241020190208623"></p>
+<p>可以用文件读取漏洞去获取：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020190308356.png" alt="image-20241020190308356"></p>
+<p>这是root用户的密钥：</p>
+<p><img src="https://anneballa.github.io/pageimgs/Clue.imgs/image-20241020190431530.png" alt="image-20241020190431530"></p>
+]]></content>
+      <categories>
+        <category>Lab Writeup</category>
+      </categories>
+      <tags>
+        <tag>Proving Grounds</tag>
+      </tags>
+  </entry>
 </search>
