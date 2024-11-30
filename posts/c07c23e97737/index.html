@@ -1,0 +1,530 @@
+<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Tailscale组网 | Whimsical Whirls</title><meta name="author" content="Annabelle"><meta name="copyright" content="Annabelle"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#FFFFFF"><meta name="description" content="利用Tailscale构建自己的NAT网络方案： Tailscale 是一个用户友好的 VPN 服务，允许用户在不同设备之间创建安全的网络连接。它利用 WireGuard 协议的高效性和安全性，提供了一个易于配置和管理的虚拟专用网络，它通过简化网络配置和增强安全性，使得创建和管理虚拟网络变得更加高效和便捷。 主要特点 易于设置： Tailscale 的安装和配置非常简单。用户只需在设备上安装客户端">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tailscale组网">
+<meta property="og:url" content="https://anneballa.github.io/posts/c07c23e97737/index.html">
+<meta property="og:site_name" content="Whimsical Whirls">
+<meta property="og:description" content="利用Tailscale构建自己的NAT网络方案： Tailscale 是一个用户友好的 VPN 服务，允许用户在不同设备之间创建安全的网络连接。它利用 WireGuard 协议的高效性和安全性，提供了一个易于配置和管理的虚拟专用网络，它通过简化网络配置和增强安全性，使得创建和管理虚拟网络变得更加高效和便捷。 主要特点 易于设置： Tailscale 的安装和配置非常简单。用户只需在设备上安装客户端">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://anneballa.github.io/img/wallpaperflare.com_wallpaper4.jpg">
+<meta property="article:published_time" content="2024-11-17T06:43:42.031Z">
+<meta property="article:modified_time" content="2024-11-18T15:31:36.351Z">
+<meta property="article:author" content="Annabelle">
+<meta property="article:tag" content="Infrastructure">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anneballa.github.io/img/wallpaperflare.com_wallpaper4.jpg"><link rel="shortcut icon" href="/img/user.jpg"><link rel="canonical" href="https://anneballa.github.io/posts/c07c23e97737/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//static.cloudflareinsights.com"/><link rel="preconnect" href="//www.clarity.ms"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#FFFFFF')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1A1A1A')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script async="async" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><script>(adsbygoogle = window.adsbygoogle || []).push({
+  google_ad_client: '',
+  enable_page_level_ads: 'true'
+});</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?5ccd7158aad871b7e138d1e94604570d";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+btf.addGlobalFn('pjaxComplete', () => {
+  _hmt.push(['_trackPageview',window.location.pathname])
+}, 'baidu_analytics')
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-E73YY60GZ0"></script><script>window.dataLayer = window.dataLayer || []
+function gtag(){dataLayer.push(arguments)}
+gtag('js', new Date())
+gtag('config', 'G-E73YY60GZ0')
+btf.addGlobalFn('pjaxComplete', () => {
+  gtag('config', 'G-E73YY60GZ0', {'page_path': window.location.pathname})
+}, 'google_analytics')
+</script><script defer="defer" data-pjax="data-pjax" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;419291430af34b7a80f2d0ec57b51e59&quot;}"></script><script>(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "oikwumaw0s");</script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":true,"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":500,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: {"chs_to_cht":"You have switched to Traditional Chinese","cht_to_chs":"You have switched to Simplified Chinese","day_to_night":"You have switched to Dark Mode","night_to_day":"You have switched to Light Mode","bgLight":"#1A1A1A","bgDark":"#1A1A1A","position":"bottom-left"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Tailscale组网',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  isShuoshuo: false
+}</script><style type="text/css"> .aplayer.aplayer-fixed.aplayer-narrow .aplayer-body { left: -66px !important; /* 默认情况下缩进左侧66px，只留一点箭头部分 */ }
+.aplayer.aplayer-fixed.aplayer-narrow .aplayer-body:hover { left: 0 !important; /* 鼠标悬停是左侧缩进归零，完全显示按钮 */ } </style><meta name="generator" content="Hexo 7.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+  window.addEventListener('load', preloader.endLoading)
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/user.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">27</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories"><i class="fa-fw fa fa-file-text"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://anneballa.github.io/img/wallpaperflare.com_wallpaper4.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Whimsical Whirls</span></a><a class="nav-page-title" href="/"><span class="site-name">Tailscale组网</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> Search</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories"><i class="fa-fw fa fa-file-text"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Tailscale组网</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-11-17T06:43:42.031Z" title="Created 2024-11-17 14:43:42">2024-11-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2024-11-18T15:31:36.351Z" title="Updated 2024-11-18 23:31:36">2024-11-18</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Environment-Exploration/">Environment Exploration</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>5mins</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>利用Tailscale构建自己的NAT网络方案：</p>
+<p><a target="_blank" rel="noopener external nofollow noreferrer" href="https://tailscale.com/">Tailscale</a> 是一个用户友好的 VPN 服务，允许用户在不同设备之间创建安全的网络连接。它利用 WireGuard 协议的高效性和安全性，提供了一个易于配置和管理的虚拟专用网络，它通过简化网络配置和增强安全性，使得创建和管理虚拟网络变得更加高效和便捷。</p>
+<h4 id="主要特点"><a href="#主要特点" class="headerlink" title="主要特点"></a>主要特点</h4><ol>
+<li><strong>易于设置</strong>：<ul>
+<li>Tailscale 的安装和配置非常简单。用户只需在设备上安装客户端应用程序，并通过一个简单的登录过程即可连接到网络。</li>
+</ul>
+</li>
+<li><strong>自动化网络配置</strong>：<ul>
+<li>Tailscale 自动处理网络配置和防火墙设置，用户无需手动配置复杂的网络参数。</li>
+</ul>
+</li>
+<li><strong>跨平台支持</strong>：<ul>
+<li>支持多种操作系统，包括 Windows、macOS、Linux、iOS 和 Android，使得不同设备之间的连接变得无缝。</li>
+</ul>
+</li>
+<li><strong>安全性</strong>：<ul>
+<li>基于 WireGuard 协议，Tailscale 提供了强大的加密和安全性，确保数据在传输过程中的安全。</li>
+</ul>
+</li>
+<li><strong>去中心化架构</strong>：<ul>
+<li>Tailscale 使用点对点连接，减少了对中心服务器的依赖，提高了连接速度和可靠性。</li>
+</ul>
+</li>
+<li><strong>访问控制</strong>：<ul>
+<li>提供细粒度的访问控制，用户可以轻松管理谁可以访问网络中的哪些资源。</li>
+</ul>
+</li>
+</ol>
+<h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><ul>
+<li><strong>远程工作</strong>：帮助分布式团队安全地访问公司内部资源。</li>
+<li><strong>家庭网络</strong>：在家庭设备之间创建安全连接。</li>
+<li><strong>开发者环境</strong>：为开发者提供安全的测试和开发环境。</li>
+</ul>
+<p>并且对于个人用户来说是免费的：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241017234516754.png" alt="image-20241017234516754"></p>
+<p>这是来自于官方手册，为了良好的使用，可以将服务器开启允许IP转发，如果您的 Linux 系统有一个<code>/etc/sysctl.d</code>目录，请使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv4.ip_forward = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.d/99-tailscale.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv6.conf.all.forwarding = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.d/99-tailscale.conf</span><br><span class="line"><span class="built_in">sudo</span> sysctl -p /etc/sysctl.d/99-tailscale.conf</span><br></pre></td></tr></table></figure>
+
+<p>否则使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv4.ip_forward = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;net.ipv6.conf.all.forwarding = 1&#x27;</span> | <span class="built_in">sudo</span> <span class="built_in">tee</span> -a /etc/sysctl.conf</span><br><span class="line"><span class="built_in">sudo</span> sysctl -p /etc/sysctl.conf</span><br></pre></td></tr></table></figure>
+
+<p>启动IP转发后可以使用命令来启动子网路由，</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo tailscale up --advertise-routes=192.168.233.0/24</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong><code>--advertise-routes=192.168.233.0/24</code></strong>: 这个选项用于指定当前节点将向 Tailscale 网络中的其他节点“广告”或“广播”的路由。<strong>广告路由的作用</strong>是 其他 Tailscale 节点可以通过这个节点访问这两个子网中的设备。这通常用于连接不同的网络或子网，使得它们可以通过 Tailscale 网络进行通信。</li>
+</ul>
+<h4 id="使用方法"><a href="#使用方法" class="headerlink" title="使用方法"></a>使用方法</h4><p>使用邮箱注册登录账号，下载符合自己平台的安装程序：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018090828145.png" alt="image-20241018090828145"></p>
+<p>安装好后，可以点击自己的admin console，我喜欢这个界面风格设计：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018091416751.png" alt="image-20241018091416751"></p>
+<p>要添加设备，可以点击右上角Add device，这里选择添加服务器，因为服务器可以选择做出口节点，这里只是赋予服务器可以用来做出口节点的属性：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018101204183.png" alt="image-20241018101204183"></p>
+<p>随后点击下边的生成脚本：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241018101309776.png" alt="image-20241018101309776"></p>
+<p>复制命令到服务器上执行，安装完成后会自动启动。如果要将服务器作为出口IP，拿windows举例，右键任务栏的图标里即可切换出口节点：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241019010124252.png" alt="image-20241019010124252"></p>
+<p>linux用户可以在启动时候添加命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> tailscale <span class="built_in">set</span> --exit-node=&lt;exit-node-ip&gt;</span><br></pre></td></tr></table></figure>
+
+<p>要取消出口节点设置就在命令中添加空：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> tailscale up --exit-node=</span><br></pre></td></tr></table></figure>
+
+<h4 id="自建节点"><a href="#自建节点" class="headerlink" title="自建节点"></a>自建节点</h4><p>Tailscale在某些地区是没有节点的，会导致延迟特别的大，约等于不能用，官方有一篇自建节点的文章:</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://tailscale.com/kb/1118/custom-derp-servers</span><br></pre></td></tr></table></figure>
+
+<p>但是给我看的云里雾里的，首先默认需要所要搭载节点环境的服务器开放80，443，3478分别用来监听运行HTTP、HTTPS、STUN服务，可以自定义，但暂时不考虑自定义，先默认配置跑起来再说，首先安装<strong>derper</strong>，需要golang环境，而且比较新，我这里装的是1.23.3：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://go.dev/doc/install</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go install tailscale.com/cmd/derper@latest</span><br></pre></td></tr></table></figure>
+
+<p>然后启动服务，需要一个域名，官方文档里需要一个域名，但是据说也能用IP，我有域名，不过我推荐用域名，毕竟域名还可以CDN加速的：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> derper --hostname=your-hostname.com --verify-clients</span><br></pre></td></tr></table></figure>
+
+<p>装好之后会在服务器443端口开放一个web服务：</p>
+<p><img src="/pageimgs/image-20241114231036567.png" alt="image-20241114231036567"></p>
+<p>然后应该是在tailscale官方管理面板，我一直以为是自己服务器会开一个管理面板，然而它并不是。在用户Access Controls面板中：</p>
+<p><img src="/pageimgs/image-20241114231156182.png" alt="image-20241114231156182"></p>
+<p>仿照以下格式添加您自定义的节点：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">&quot;derpMap&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">	<span class="attr">&quot;OmitDefaultRegions&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span> <span class="comment">// 可以设置为 true，这样不会下发官方的 derper 节点，测试或者实际使用都可以考虑打开</span></span><br><span class="line">	<span class="attr">&quot;Regions&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">		<span class="attr">&quot;900&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">			<span class="attr">&quot;RegionID&quot;</span><span class="punctuation">:</span>   <span class="number">900</span><span class="punctuation">,</span> <span class="comment">// tailscale 900-999 是保留给自定义 derper 的</span></span><br><span class="line">			<span class="attr">&quot;RegionCode&quot;</span><span class="punctuation">:</span> <span class="string">&quot;myderp&quot;</span><span class="punctuation">,</span></span><br><span class="line">			<span class="attr">&quot;RegionName&quot;</span><span class="punctuation">:</span> <span class="string">&quot;myderp&quot;</span><span class="punctuation">,</span> <span class="comment">// 这俩随便命名</span></span><br><span class="line">			<span class="attr">&quot;Nodes&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">				<span class="punctuation">&#123;</span></span><br><span class="line">					<span class="attr">&quot;Name&quot;</span><span class="punctuation">:</span>             <span class="string">&quot;1&quot;</span><span class="punctuation">,</span></span><br><span class="line">					<span class="attr">&quot;RegionID&quot;</span><span class="punctuation">:</span>         <span class="number">900</span><span class="punctuation">,</span></span><br><span class="line">					<span class="attr">&quot;IPv4&quot;</span><span class="punctuation">:</span>             <span class="string">&quot;domain&quot;</span><span class="punctuation">,</span> <span class="comment">// 你的域名</span></span><br><span class="line">					<span class="attr">&quot;InsecureForTests&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span> <span class="comment">// 因为是自签名证书，所以客户端不做校验</span></span><br><span class="line">				<span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">			<span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">		<span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">	<span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line"><span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br></pre></td></tr></table></figure>
+
+<p>注意末尾的逗号，官方文档中没有”,”，需要自己添加，否则会报错。编辑完成后同样在官方管理面板中点击添加设备，一路按自己要求选择，然后添加设备，操作如上一样。</p>
+<h4 id="开启自启"><a href="#开启自启" class="headerlink" title="开启自启"></a>开启自启</h4><p>创建服务：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> nano /etc/systemd/system/derper.service </span><br></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">[<span class="string">Unit</span>]</span><br><span class="line"><span class="comment"># 服务名字</span></span><br><span class="line"><span class="string">Description=Tailscale</span> <span class="string">DERP</span> <span class="string">Server</span></span><br><span class="line"><span class="comment"># 在网络服务启动后启动这个服务</span></span><br><span class="line"><span class="string">After=network.target</span></span><br><span class="line"></span><br><span class="line">[<span class="string">Service</span>]</span><br><span class="line"><span class="comment"># 改成你的用户名</span></span><br><span class="line"><span class="string">User=admin</span></span><br><span class="line"><span class="comment"># 总是自动重新启动</span></span><br><span class="line"><span class="string">Restart=always</span></span><br><span class="line"><span class="comment"># 重启前等待5秒</span></span><br><span class="line"><span class="string">RestartSec=5</span></span><br><span class="line"><span class="comment"># 启动derper的命令，跟上面测试用的命令一样</span></span><br><span class="line"><span class="string">ExecStart=/usr/local/bin/derper</span> <span class="string">--hostname=derp.mydomain.com</span> <span class="string">-verify-clients</span> </span><br><span class="line"></span><br><span class="line">[<span class="string">Install</span>]</span><br><span class="line"><span class="string">WantedBy=multi-user.target</span></span><br></pre></td></tr></table></figure>
+
+<p>载入服务变更：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl daemon-reload</span><br></pre></td></tr></table></figure>
+
+<p>启动服务：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl start derper</span><br></pre></td></tr></table></figure>
+
+<p>创建开机启动：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> systemctl <span class="built_in">enable</span> derper</span><br></pre></td></tr></table></figure></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://anneballa.github.io">Annabelle</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://anneballa.github.io/posts/c07c23e97737/">https://anneballa.github.io/posts/c07c23e97737/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener external nofollow noreferrer" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Infrastructure/">Infrastructure</a></div><div class="post-share"><div class="social-share" data-image="https://anneballa.github.io/img/wallpaperflare.com_wallpaper4.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>Sponsor</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/wechat.png" target="_blank"><img class="post-qr-code-img" src="/img/wechat.png" alt="wechat"/></a><div class="post-qr-code-desc">wechat</div></li><li class="reward-item"><a href="/img/alipay.png" target="_blank"><img class="post-qr-code-img" src="/img/alipay.png" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/3f03a58ff729/" title="Proving Grounds Vector Writeup"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper9.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">Proving Grounds Vector Writeup</div></div><div class="info-2"><div class="info-item-1">Recon:1nmap 192.168.201.119 -p- -Pn -n -sT --min-rate 2000  1nmap 192.168.201.119 -p21,80,135,139,445,2290,3389,5985 -sC -sV  12345678910PORT     STATE SERVICE       VERSION21/tcp   open  ftp           Microsoft ftpd80/tcp   open  http          Microsoft IIS httpd 10.0135/tcp  open  msrpc         Microsoft Windows RPC~~139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn~~~~445/tcp  open  microsoft-ds  Microsoft Windows Server 2008 R2 2012 microsoft-ds~~2290/tcp open  http         ...</div></div></div></a><a class="pagination-related" href="/posts/430f908755c6/" title="HTB GreenHorn Writeup"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper13.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">HTB GreenHorn Writeup</div></div><div class="info-2"><div class="info-item-1">  ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/073a3c28e067/" title="Code-server"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper8.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-17</div><div class="info-item-2">Code-server</div></div><div class="info-2"><div class="info-item-1">发现了一个极其方便的应用，这可要比在宝塔里编辑文件方便很多,发现自己最近在疯狂搞基础设施搭建： 1https://github.com/coder/code-server  使用安装命令： 1curl -fsSL https://code-server.dev/install.sh | sh  就安装好了，真简单，默认配置文件在以下位置： 1~/.config/code-server/config.yaml  配置文件示例： 1234567bind-addr: 0.0.0.0:8080  # Code Server 监听的地址和端口  auth: password           # 认证方式，可以是 &#x27;password&#x27; 或 &#x27;none&#x27;  password: yourpassword   # 用于登录的密码  cert: false              # 是否使用 HTTPS，默认为 false  # cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  # cert-key:...</div></div></div></a><a class="pagination-related" href="/posts/6673960466d6/" title="Hexo博客站点搭建记录"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-17</div><div class="info-item-2">Hexo博客站点搭建记录</div></div><div class="info-2"><div class="info-item-1">最近，我的观念发生了一些改变。回顾过去一两年，我在折腾各种环境上花费了太多时间和精力，这让我渐渐偏离了最初的技术研究方向，再者很多基础设施我并没有从一开始用心认证去做，一时兴起占据多数。现在我觉得应该收收心思，少些花里胡哨，多点脚踏实地，决定将个人基础设施踏踏实实的用心做好。我觉得重构博客是一个不错的开始。 环境准备在搭建博客之前最好选择一个适合自己的搭载的博客环境，最开始我是准备在物理机上构建，但是考虑到后续可能会有很多文章内容包含会被杀软查杀的命令代码，所以我使用Hyper-V安装了一台搭载Debian 12操作系统的虚拟机用来搭载我的博客站点。VMware最近一两年在使用过程中总是出现一些莫名其妙的小问题，但是让我个人感觉非常不爽，我更喜欢Hyper-V，虽然两者对于个人用户来说没啥大区别。VMware与Hyper-V其实都不方便复制粘贴的，所以可以开启服务器的SSH服务，便于复制粘贴： 1systemctl start sshd.service   Windows 10以后的操作系统命令行已经自带ssh工具了，打开物理机终端输入： 12ssh...</div></div></div></a><a class="pagination-related" href="/posts/bd3fde463790/" title="Hyprland桌面环境构建与美化"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper10.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-17</div><div class="info-item-2">Hyprland桌面环境构建与美化</div></div><div class="info-2"><div class="info-item-1">最近我尝试了一款名为 Hyprland 的 Linux 桌面环境，这个过程让我折腾了很久。由于对 Linux 底层原理不太了解，加上各种报错让我感到无力，我先后在 Debian、Kali、Parrot 和 Arch Linux 上尝试安装。比较麻烦是来源于它只支持 C++26，而目前 Kali 和 Parrot 只有 g++13，C++26 只有在 Debian 13 测试版和 Arch Linux 系列中可用。虽然尝试在 Debian 上从零构建，但总是因为一些未知原因报错，而 Arch Linux 则相对容易构建。然而，在日常工作和学习中，各种工具环境的报错让人头疼，尽管有文档支持。 在 Arch 使用一段时间后，我渐渐的喜欢上了它，但紧接着就遇到了问题，一些工具报错甚至没有错误日志，只显示白屏。但是我仍然不想换回 Windows，因为我选择的笔记本似乎真的是为程序员设计的，装 Windows 时会出现死机和音箱破音的问题，而在 Linux 下这些问题都没有。 尽管心灰意冷，我准备结束折腾之路，老老实实换回 Kali，但 Kali 安装其他软件时的依赖问题也让我头疼，尤其是...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/user.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Annabelle</div><div class="author-info-description">Be a down-to-earth person</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">27</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Anneballa"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Anneballa" rel="external nofollow noreferrer" target="_blank" title="Github"><i class="fab fa-github" style="color: #2E2E2E;"></i></a><a class="social-icon" href="mailto:worldisend.com@gmail.com" rel="external nofollow noreferrer" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #2E2E2E;"></i></a><a class="social-icon" href="https://anneballa.github.io/WeChatUser.jpg" target="_blank" title="WeChat"><i class="fab fa-weixin" style="color: #2E2E2E;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Welcome to my blog! Here, you'll find a collection of my experiences and insights in red team penetration testing, programming tips, and tech tinkering. I hope you discover content that's both intriguing and practical, and that you enjoy your time here.</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E7%89%B9%E7%82%B9"><span class="toc-number">1.</span> <span class="toc-text">主要特点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">2.</span> <span class="toc-text">使用场景</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E6%B3%95"><span class="toc-number">3.</span> <span class="toc-text">使用方法</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%87%AA%E5%BB%BA%E8%8A%82%E7%82%B9"><span class="toc-number">4.</span> <span class="toc-text">自建节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BC%80%E5%90%AF%E8%87%AA%E5%90%AF"><span class="toc-number">5.</span> <span class="toc-text">开启自启</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/f1a2215b071a/" title="个人服务器使用优化"><img src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper9.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="个人服务器使用优化"/></a><div class="content"><a class="title" href="/posts/f1a2215b071a/" title="个人服务器使用优化">个人服务器使用优化</a><time datetime="2024-11-30T17:49:32.321Z" title="Created 2024-12-01 01:49:32">2024-12-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/19140dd6c32d/" title="HTB Usage Writeup"><img src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper9.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HTB Usage Writeup"/></a><div class="content"><a class="title" href="/posts/19140dd6c32d/" title="HTB Usage Writeup">HTB Usage Writeup</a><time datetime="2024-11-17T06:43:42.055Z" title="Created 2024-11-17 14:43:42">2024-11-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/967b9608df4e/" title="Proving Grounds Clue Writeup"><img src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper2.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Proving Grounds Clue Writeup"/></a><div class="content"><a class="title" href="/posts/967b9608df4e/" title="Proving Grounds Clue Writeup">Proving Grounds Clue Writeup</a><time datetime="2024-11-17T06:43:42.055Z" title="Created 2024-11-17 14:43:42">2024-11-17</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(https://anneballa.github.io/img/wallpaperflare.com_wallpaper4.jpg);"><div id="footer-wrap"><div class="copyright">&copy;2024 By Annabelle</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Hi, welcome to my <a target="_blank" rel="noopener external nofollow noreferrer" href="https://butterfly.js.org/">blog</a>!</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="Toggle Between Traditional and Simplified Chinese">簡</button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><script>(() => {
+  const panguFn = () => {
+    if (typeof pangu === 'object') pangu.autoSpacingPage()
+    else {
+      btf.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js')
+        .then(() => {
+          pangu.autoSpacingPage()
+        })
+    }
+  }
+
+  const panguInit = () => {
+    if (false){
+      GLOBAL_CONFIG_SITE.isPost && panguFn()
+    } else {
+      panguFn()
+    }
+  }
+
+  btf.addGlobalFn('pjaxComplete', panguInit, 'pangu')
+  document.addEventListener('DOMContentLoaded', panguInit)
+})()</script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.isShuoshuo
+  const option = null
+
+  const initValine = (el, path) => {
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyValine = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+
+    const valineConfig = {
+      el: '#vcomment',
+      appId: 'fKkdoOGNlkozMbbTJLCjBAc9-MdYXbMMI',
+      appKey: 'UGfkx1EW64F8HbijrVqMISJl',
+      avatar: 'dYITsXL09VpXYoKygV264Yg4',
+      serverURLs: '',
+      emojiMaps: "",
+      visitor: false,
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || window.location.pathname
+    }
+
+    new Valine(valineConfig)
+  }
+
+  const loadValine = async (el, path) => {
+    if (typeof Valine === 'function') {
+      initValine(el, path)
+    } else {
+      await btf.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js')
+      initValine(el, path)
+    }
+  }
+
+  if (isShuoshuo) {
+    'Valine' === 'Valine'
+      ? window.shuoshuoComment = { loadComment: loadValine }
+      : window.loadOtherComment = loadValine
+    return
+  }
+
+  if ('Valine' === 'Valine' || !false) {
+    if (false) btf.loadComment(document.getElementById('vcomment'),loadValine)
+    else setTimeout(loadValine, 0)
+  } else {
+    window.loadOtherComment = loadValine
+  }
+})()</script></div><script src="https://cdn.jsdelivr.net/npm/blueimp-md5/js/md5.min.js"></script><script>window.newestComments = {
+  changeContent: content => {
+    if (content === '') return content
+
+    content = content.replace(/<img.*?src="(.*?)"?[^\>]+>/ig, '[Image]') // replace image link
+    content = content.replace(/<a[^>]+?href=["']?([^"']+)["']?[^>]*>([^<]+)<\/a>/gi, '[Link]') // replace url
+    content = content.replace(/<pre><code>.*?<\/pre>/gi, '[Code]') // replace code
+    content = content.replace(/<code>.*?<\/code>/gi, '[Code]') // replace code      
+    content = content.replace(/<[^>]+>/g, "") // remove html tag
+
+    if (content.length > 150) {
+      content = content.substring(0, 150) + '...'
+    }
+    return content
+  },
+
+  generateHtml: (array, ele) => {
+    let result = ''
+
+    if (array.length) {
+      for (let i = 0; i < array.length; i++) {
+        result += '<div class="aside-list-item">'
+
+        if (true && array[i].avatar) {
+          const imgAttr = 'src'
+          result += `<a href="${array[i].url}" class="thumbnail"><img ${imgAttr}="${array[i].avatar}" alt="${array[i].nick}"></a>`
+        }
+
+        result += `<div class="content">
+        <a class="comment" href="${array[i].url}" title="${array[i].content}">${array[i].content}</a>
+        <div class="name"><span>${array[i].nick} / </span><time datetime="${array[i].date}">${btf.diffDate(array[i].date, true)}</time></div>
+        </div></div>`
+      }
+    } else {
+      result += 'No comments'
+    }
+
+    ele.innerHTML = result
+    window.lazyLoadInstance && window.lazyLoadInstance.update()
+    window.pjax && window.pjax.refresh(ele)
+  },
+
+  newestCommentInit: (name, getComment) => {
+    const $dom = document.querySelector('#card-newest-comments .aside-list')
+    if ($dom) {
+      const data = btf.saveToLocal.get(name)
+      if (data) {
+        newestComments.generateHtml(JSON.parse(data), $dom)
+      } else {
+        getComment($dom)
+      }
+    }
+  },
+
+  run: (name, getComment) => {
+    newestComments.newestCommentInit(name, getComment)
+    btf.addGlobalFn('pjaxComplete', () => newestComments.newestCommentInit(name, getComment), name)
+  }
+}</script><script>window.addEventListener('load', () => {
+  const keyName = 'valine-newest-comments'
+  const { changeContent, generateHtml, run } = window.newestComments
+
+  const getIcon = (icon, mail) => {
+    if (icon) return icon
+    let defaultIcon = '?d=dYITsXL09VpXYoKygV264Yg4'
+    let iconUrl = `https://gravatar.loli.net/avatar/${md5(mail.toLowerCase()) + defaultIcon}`
+    return iconUrl
+  }
+
+  const getComment = ele => {
+    const serverURL = 'https://fKkdoOGN.api.lncldglobal.com'
+
+    var settings = {
+      "method": "GET",
+      "headers": {
+        "X-LC-Id": 'fKkdoOGNlkozMbbTJLCjBAc9-MdYXbMMI',
+        "X-LC-Key": 'UGfkx1EW64F8HbijrVqMISJl',
+        "Content-Type": "application/json"
+      },
+    }
+
+    fetch(`${serverURL}/1.1/classes/Comment?limit=6&order=-createdAt`,settings)
+      .then(response => response.json())
+      .then(data => {
+        const valineArray = data.results.map(e => {
+          return {
+            'avatar': getIcon(e.QQAvatar, e.mail),
+            'content': changeContent(e.comment),
+            'nick': e.nick,
+            'url': e.url + '#' + e.objectId,
+            'date': e.updatedAt,
+          }
+        })
+        btf.saveToLocal.set(keyName, JSON.stringify(valineArray), 10/(60*24))
+        generateHtml(valineArray, ele)
+      }).catch(e => {
+        console.error(e)
+        ele.textContent= "Unable to retrieve comments, please check the configuration"
+      })
+  }
+
+  run(keyName, getComment)
+})</script><div class="aplayer no-destroy" data-volume="0.3" data-id="7274845708" data-server="netease" data-type="playlist" data-fixed="true" data-mini="true" data-listFolded="false" data-order="random" data-preload="none" data-lrctype="0" data-autoplay="true" data-theme="#1A1A1A" muted></div><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script>(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})()</script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script>(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: true,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => fn())
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      pjax.loadUrl('/404.html')
+    }
+  })
+})()</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
