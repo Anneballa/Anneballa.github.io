@@ -2008,7 +2008,7 @@
 <h3 id="基本环境部署"><a href="#基本环境部署" class="headerlink" title="基本环境部署"></a>基本环境部署</h3><p>首先是运维面板，我还是选择了宝塔国际版，因为这版没有广告：</p>
 <figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://www.aapanel.com/</span><br></pre></td></tr></table></figure>
 
-<p>建议就在以上地址找到的安装脚本进行安装，其他地方找到的哪怕是 <strong>bt.cn</strong> 上的都别用，有坑。使用aapanel可以很方便的编译安装nginx，我这里选择.126稳定版本的nginx。</p>
+<p>建议就在以上地址找到的安装脚本进行安装，其他地方找到的哪怕是 <strong>bt.cn</strong> 上的都别用，有坑。使用aapanel可以很方便的编译安装nginx，我这里选择1.26稳定版本的nginx。</p>
 <p><img src="/pageimgs/image-20241130195753463.png" alt="image-20241130195753463"></p>
 <h3 id="服务器优化"><a href="#服务器优化" class="headerlink" title="服务器优化"></a>服务器优化</h3><h4 id="网络核心优化"><a href="#网络核心优化" class="headerlink" title="网络核心优化"></a>网络核心优化</h4><p>编辑 <strong>&#x2F;etc&#x2F;sysctl.conf</strong>，添加以下参数 ，这可以满足我的日常VPN使用谷歌，docker镜像进行更新等等：</p>
 <figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">##########################################  </span></span><br><span class="line"><span class="comment"># 网络核心优化  </span></span><br><span class="line"><span class="comment">##########################################  </span></span><br><span class="line"><span class="comment"># 启用BBR加速，提升VPN、视频流性能  </span></span><br><span class="line">net.core.default_qdisc=fq  </span><br><span class="line">net.ipv4.tcp_congestion_control=bbr  </span><br></pre></td></tr></table></figure>
