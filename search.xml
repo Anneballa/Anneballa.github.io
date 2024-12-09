@@ -2291,4 +2291,251 @@
         <tag>Infrastructure</tag>
       </tags>
   </entry>
+  <entry>
+    <title>PVE折腾之路</title>
+    <url>/posts/caca9266ef46/</url>
+    <content><![CDATA[<p>最近我搭建了一个全新的家庭实验环境，选择了业界领先的开源虚拟化平台 Proxmox Virtual Environment (PVE) 作为核心：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://www.proxmox.com/en/proxmox-virtual-environment/overview  </span><br></pre></td></tr></table></figure>
+
+<p>Proxmox VE 是一个企业级的开源解决方案，它完美集成了KVM虚拟机和LXC容器技术，提供了强大而灵活的虚拟化管理能力。部署过程相当直观，只需准备一个USB启动盘，按照标准的引导安装流程即可完成基础环境搭建。</p>
+<h2 id="基础配置优化"><a href="#基础配置优化" class="headerlink" title="基础配置优化"></a>基础配置优化</h2><p>Proxmox基于Debian发行版的，碍于它定位是一台小服务器，所以并不打算给它翻墙，用国内源即可：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 默认注释了源码镜像以提高 apt update 速度，如有需要可自行取消注释</span></span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware</span><br><span class="line"></span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware</span><br><span class="line"></span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下安全更新软件源包含了官方源与镜像站配置，如有需要可自行修改注释切换</span></span><br><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware</span><br><span class="line">deb-src https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware</span><br></pre></td></tr></table></figure>
+
+<p>安装完默认会有一个**&#x2F;etc&#x2F;apt&#x2F;sources.list.d&#x2F;pve-enterprise.list**文件，其中包含着国外的企业版仓库源，很慢，可以将其注释。更换国内清华的：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">deb https://mirrors.tuna.tsinghua.edu.cn/proxmox/debian/pve bookworm pve-no-subscription</span><br></pre></td></tr></table></figure>
+
+<p>还有个ceph源默认也是走的官方非常慢，也可以走清华源：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -fsSL <span class="string">&#x27;https://mirrors.tuna.tsinghua.edu.cn/ceph/keys/release.asc&#x27;</span> | gpg --dearmor -o /etc/apt/keyrings/ceph.gpg</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;deb [signed-by=/etc/apt/keyrings/ceph.gpg] https://mirrors.tuna.tsinghua.edu.cn/ceph/debian-octopus/ buster main&quot;</span> &gt; /etc/apt/sources.list.d/ceph.list  </span><br></pre></td></tr></table></figure>
+
+<p>还要个CT模板源，LXC 容器的模板国内也有源：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> /usr/share/perl5/PVE/APLInfo.pm /usr/share/perl5/PVE/APLInfo.pm_back</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">sed -i <span class="string">&#x27;s|http://download.proxmox.com|https://mirrors.tuna.tsinghua.edu.cn/proxmox|g&#x27;</span> /usr/share/perl5/PVE/APLInfo.pm</span><br></pre></td></tr></table></figure>
+
+<p>重启服务生效：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl restart pvedaemon.service</span><br></pre></td></tr></table></figure>
+
+<p>配置好后访问默认</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://your_ip_address:8006</span><br></pre></td></tr></table></figure>
+
+<p>输入安装时候设置的root用户账户密码即可：</p>
+<p><img src="/pageimgs/image-20241206002407712.png" alt="image-20241206002407712"></p>
+<p>登录会有一个烦人的弹窗：</p>
+<p><img src="/pageimgs/image-20241206212702962.png" alt="image-20241206212702962"></p>
+<p>代码在以下位置：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cd</span>  /usr/share/javascript/proxmox-widget-toolkit/</span><br></pre></td></tr></table></figure>
+
+<p>记得先备份:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> proxmoxlib.js proxmoxlib.js.bak</span><br></pre></td></tr></table></figure>
+
+<p>然后搜索：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> proxmoxlib.js | grep <span class="string">&quot;checked_command&quot;</span> -n</span><br></pre></td></tr></table></figure>
+
+<p><img src="/pageimgs/image-20241206220929749.png" alt="image-20241206220929749"></p>
+<p>我的在554行，变更前是这样：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">checked_command: <span class="keyword">function</span>(orig_cmd) &#123;</span><br><span class="line">            Proxmox.Utils.API2Request(</span><br><span class="line">            &#123;</span><br><span class="line">                url: <span class="string">&#x27;/nodes/localhost/subscription&#x27;</span>,</span><br><span class="line">                method: <span class="string">&#x27;GET&#x27;</span>,</span><br><span class="line">                failure: <span class="keyword">function</span>(response, opts) &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>变更后是这样：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">checked_command: <span class="keyword">function</span>(orig_cmd) &#123;</span><br><span class="line">        orig_cmd(); <span class="comment">#&lt;-----这里是第一个加的地方</span></span><br><span class="line">            <span class="built_in">return</span>; <span class="comment">#&lt;-----这里是第二个加的地方，后面的不要动</span></span><br><span class="line">            Proxmox.Utils.API2Request(</span><br><span class="line">            &#123;</span><br><span class="line">                url: <span class="string">&#x27;/nodes/localhost/subscription&#x27;</span>,</span><br><span class="line">                method: <span class="string">&#x27;GET&#x27;</span>,</span><br><span class="line">                failure: <span class="keyword">function</span>(response, opts) &#123;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>然后重启服务：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl restart pveproxy.service</span><br></pre></td></tr></table></figure>
+
+<p>我一直是觉得浏览器输IP地址加端口是非常不雅的行为，所以我准备将其证书换成我自己的SSL证书，证书路径在以下位置：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">/etc/pve/nodes/(node_name)</span><br></pre></td></tr></table></figure>
+
+<p>在 PVE 集群环境中，node_name 代表节点标识符，它默认继承自系统主机名（hostname），我的主机名就叫PVE，所以节点名称也是PVE，但是为了自己的规范，我将名称改了，改为了proxmox。改个名还比较麻烦：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim /etc/hostname</span><br><span class="line">vim /etc/hosts</span><br><span class="line">hostnamectl set-hostname proxmox</span><br></pre></td></tr></table></figure>
+
+<p>然后重启，就发现节点名称改了。接下来是替换证书，首先将证书转换为pem格式：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">openssl x509 -<span class="keyword">in</span> certificate.crt -out certificate.pem -outform PEM </span><br></pre></td></tr></table></figure>
+
+<p>然后对目录中的证书进行替换，比如我的主机名是proxmox：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">/etc/pve/nodes/proxmox</span><br></pre></td></tr></table></figure>
+
+<p>那我的证书就是替换：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cp</span> ~/private.key pve-ssl.key</span><br><span class="line"><span class="built_in">cp</span> ~/certificate.pem pve-ssl.pem</span><br></pre></td></tr></table></figure>
+
+<p>然后重启服务：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl restart pveproxy</span><br></pre></td></tr></table></figure>
+
+<p>试了下使用iptables进行转发，但是效果不好，但是PVE系统又要尽量的保持精简，目前想了一个方案，就是装一台虚拟机，然后在虚拟机中装一个nginx用来进行反代。稍后再说。</p>
+<h2 id="基础使用流程"><a href="#基础使用流程" class="headerlink" title="基础使用流程"></a>基础使用流程</h2><p><img src="/pageimgs/image-20241207113242948.png" alt="image-20241207113242948"></p>
+<p>管理面板还是比骄一目了然，目前安装成功后数据中心中可以看到自己节点下有三个：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">localnetwork	本地网络，主要用于虚拟机和容器之间的内部网络通信</span><br><span class="line"><span class="built_in">local</span>			本地存储，自动安装时默认分了100GB大小，通常用来存储上传后的镜像</span><br><span class="line">local-lvm		本地存储，通常用来存放虚拟机文件</span><br></pre></td></tr></table></figure>
+
+<p>上传镜像就是按下图所示：</p>
+<p><img src="/pageimgs/image-20241207113854881.png" alt="image-20241207113854881"></p>
+<p>创建虚拟机可以点击右上角创建虚拟机，名称可以自定义，VM ID是虚拟机的编号，通常对于个人用户来说不需要在意这么多：</p>
+<p><img src="/pageimgs/image-20241207113732015.png" alt="image-20241207113732015"></p>
+<p>然后选择自己上传后的镜像：</p>
+<p><img src="/pageimgs/image-20241207113938488.png" alt="image-20241207113938488"></p>
+<p>有个Qemu代理建议开启：</p>
+<p><img src="/pageimgs/image-20241207114828126.png" alt="image-20241207114828126"></p>
+<p>开启的好处：</p>
+<ol>
+<li>更好的管理体验：</li>
+</ol>
+<ul>
+<li>可以在PVE界面直接看到虚拟机的IP地址</li>
+<li>能够进行更优雅的关机操作</li>
+<li>更精确的资源使用监控</li>
+</ul>
+<ol>
+<li>备份相关：</li>
+</ol>
+<ul>
+<li>支持文件系统冻结，保证备份数据一致性</li>
+<li>更可靠的快照操作</li>
+<li>减少数据丢失风险</li>
+</ul>
+<ol>
+<li>维护便利：</li>
+</ol>
+<ul>
+<li>更容易进行日常维护</li>
+<li>更好的系统状态监控</li>
+<li>问题排查更方便</li>
+</ul>
+<p>后边的配置和VMware都差不多，只用改磁盘大小和CPU核数，其他通常默认就行不需要变更，防火墙可以关闭。</p>
+<p><img src="/pageimgs/image-20241207120137821.png" alt="image-20241207120137821"></p>
+<p>后边发现配置不合适可以自行再增减：</p>
+<p><img src="/pageimgs/image-20241207120241439.png" alt="image-20241207120241439"></p>
+<p>然后在控制台开启虚拟机：</p>
+<p><img src="/pageimgs/image-20241207120427871.png" alt="image-20241207120427871"></p>
+<h2 id="虚拟机服务配置"><a href="#虚拟机服务配置" class="headerlink" title="虚拟机服务配置"></a>虚拟机服务配置</h2><p>PVE好像可以直接使用CT容器，但是那样IP好像就占用太多了，而且像博客诸类其实使用不多，所以我还是将其放到nginx中通过反代的方式进行。我安装了一台Debian虚拟机，未装桌面环境，本来是准备先尝试能否开启剪贴板共享的，但是搜了一下没有找到相关文章，细想了一下暂时也没这个需求，准备用这台来先构建自己的基本服务环境，因为我这里只用tailscale进行了组网，所以其实有没有剪切板暂时也不重要了。先从最基本的web服务开始，折腾了半天的手动编译Nginx各种报错，我决定安装宝塔了，使用宝塔国际版：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">URL=https://www.aapanel.com/script/install_7.0_en.sh &amp;&amp; <span class="keyword">if</span> [ -f /usr/bin/curl ];<span class="keyword">then</span> curl -ksSO <span class="string">&quot;<span class="variable">$URL</span>&quot;</span> ;<span class="keyword">else</span> wget --no-check-certificate -O install_7.0_en.sh <span class="string">&quot;<span class="variable">$URL</span>&quot;</span>;<span class="keyword">fi</span>;bash install_7.0_en.sh aapanel</span><br></pre></td></tr></table></figure>
+
+<p>然后把需要反代的配置文件统一放到&#x2F;www&#x2F;server&#x2F;nginx&#x2F;conf&#x2F;vhost&#x2F;目录中，便于管理。</p>
+<h4 id="配置Nginx"><a href="#配置Nginx" class="headerlink" title="配置Nginx"></a>配置Nginx</h4><p>首先是最基本优化过后的nginx配置，这个是面向小型内网环境的：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 全局配置  </span></span><br><span class="line">user www www;  </span><br><span class="line">worker_processes auto;  <span class="comment"># 自动检测CPU核心数  </span></span><br><span class="line">worker_cpu_affinity auto;  <span class="comment"># 自动分配CPU亲和性  </span></span><br><span class="line">worker_rlimit_nofile 10240;  </span><br><span class="line">error_log /www/wwwlogs/nginx_error.log crit;  </span><br><span class="line">pid /www/server/nginx/logs/nginx.pid;  </span><br><span class="line"></span><br><span class="line"><span class="comment"># Stream模块  </span></span><br><span class="line">stream &#123;  </span><br><span class="line">    log_format tcp_format <span class="string">&#x27;$time_local|$remote_addr|$protocol|$status|$bytes_sent|$bytes_received|$session_time|$upstream_addr|$upstream_bytes_sent|$upstream_bytes_received|$upstream_connect_time&#x27;</span>;  </span><br><span class="line">    access_log /www/wwwlogs/tcp-access.log tcp_format;  </span><br><span class="line">    error_log /www/wwwlogs/tcp-error.log;  </span><br><span class="line">    include /www/server/panel/vhost/nginx/tcp/*.conf;  </span><br><span class="line">&#125;  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 事件模块  </span></span><br><span class="line">events &#123;  </span><br><span class="line">    use epoll;  </span><br><span class="line">    worker_connections 2048;</span><br><span class="line">    multi_accept on;  </span><br><span class="line">    accept_mutex on;  </span><br><span class="line">    accept_mutex_delay 5ms;  </span><br><span class="line">&#125;  </span><br><span class="line"></span><br><span class="line"><span class="comment"># HTTP配置  </span></span><br><span class="line">http &#123;  </span><br><span class="line">    include mime.types;  </span><br><span class="line">    include proxy.conf;  </span><br><span class="line">    lua_package_path <span class="string">&quot;/www/server/nginx/lib/lua/?.lua;;&quot;</span>;  </span><br><span class="line"></span><br><span class="line">    default_type application/octet-stream;  </span><br><span class="line">    server_names_hash_bucket_size 512;  </span><br><span class="line">    server_names_hash_max_size 512;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 客户端请求相关 - 综合优化  </span></span><br><span class="line">    client_header_buffer_size 16k;  </span><br><span class="line">    large_client_header_buffers 2 16k;  </span><br><span class="line">    client_max_body_size 200m;  <span class="comment"># 增大上传限制  </span></span><br><span class="line">    client_header_timeout 30s;  </span><br><span class="line">    client_body_timeout 30s;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 文件传输优化 - 保持不变  </span></span><br><span class="line">    sendfile on;  </span><br><span class="line">    tcp_nopush on;  </span><br><span class="line">    tcp_nodelay on;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 连接优化 - 缩短超时  </span></span><br><span class="line">    keepalive_timeout 30;  </span><br><span class="line">    keepalive_requests 500;  </span><br><span class="line">    reset_timedout_connection on;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># FastCGI优化 - 略微调整  </span></span><br><span class="line">    fastcgi_connect_timeout 180;  </span><br><span class="line">    fastcgi_send_timeout 180;  </span><br><span class="line">    fastcgi_read_timeout 180;  </span><br><span class="line">    fastcgi_buffer_size 64k;  </span><br><span class="line">    fastcgi_buffers 4 64k;  </span><br><span class="line">    fastcgi_busy_buffers_size 128k;  </span><br><span class="line">    fastcgi_temp_file_write_size 256k;  </span><br><span class="line">    fastcgi_intercept_errors on;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># Gzip压缩优化 - 精简压缩类型  </span></span><br><span class="line">    gzip on;  </span><br><span class="line">    gzip_min_length 1k;  </span><br><span class="line">    gzip_buffers 4 16k;  </span><br><span class="line">    gzip_http_version 1.1;  </span><br><span class="line">    gzip_comp_level 6;  </span><br><span class="line">    gzip_types text/plain   </span><br><span class="line">               text/css   </span><br><span class="line">               application/json   </span><br><span class="line">               application/javascript;  </span><br><span class="line">    gzip_vary on;  </span><br><span class="line">    gzip_proxied any;  </span><br><span class="line">    gzip_disable <span class="string">&quot;MSIE [1-6]\.&quot;</span>;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 文件缓存 - 调整缓存策略  </span></span><br><span class="line">    open_file_cache max=1000 inactive=10s;  </span><br><span class="line">    open_file_cache_valid 15s;  </span><br><span class="line">    open_file_cache_min_uses 2;  </span><br><span class="line">    open_file_cache_errors on;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 连接限制 - 内网放宽  </span></span><br><span class="line">    limit_conn_zone <span class="variable">$binary_remote_addr</span> zone=perip:5m;  </span><br><span class="line">    limit_conn_zone <span class="variable">$server_name</span> zone=perserver:5m;  </span><br><span class="line">    limit_req_zone <span class="variable">$binary_remote_addr</span> zone=req_limit:5m rate=50r/s;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># WebSocket映射  </span></span><br><span class="line">	map <span class="variable">$http_upgrade</span> <span class="variable">$connection_upgrade</span> &#123;  </span><br><span class="line">    default upgrade;  </span><br><span class="line">    <span class="string">&#x27;&#x27;</span> close;  </span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># SSL会话优化  </span></span><br><span class="line">    ssl_session_cache shared:SSL:5m;  </span><br><span class="line">    ssl_session_timeout 4h;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 重定向服务器配置  </span></span><br><span class="line">    include /www/server/panel/vhost/nginx/*.conf;  </span><br><span class="line">    include /www/server/nginx/conf/vhost/*.conf;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在我的配置清单中都格外做了日志功能，在&#x2F;www&#x2F;wwwlogs&#x2F;中，有个好处就是可以根据报错日志进行排错维护。</p>
+<h4 id="配置aapanel"><a href="#配置aapanel" class="headerlink" title="配置aapanel"></a>配置aapanel</h4><p>先给宝塔配置了：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /www/server/nginx/conf/vhost/bt.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">server &#123;  </span><br><span class="line">    listen 443 ssl;  </span><br><span class="line">    listen [::]:443 ssl;  </span><br><span class="line">    http2 on;  </span><br><span class="line">    server_name bt.domain.name;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># SSL配置  </span></span><br><span class="line">    ssl_certificate /www/Certs/domain.name.cer;  </span><br><span class="line">    ssl_certificate_key /www/Certs/domain.name.key;  </span><br><span class="line">    ssl_protocols TLSv1.2 TLSv1.3;  </span><br><span class="line">   </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 主配置  </span></span><br><span class="line">    location / &#123;  </span><br><span class="line">        proxy_redirect off;  </span><br><span class="line">        proxy_pass https://127.0.0.1:10000;  </span><br><span class="line">        </span><br><span class="line">        proxy_set_header Host <span class="variable">$host</span>;  </span><br><span class="line">        proxy_set_header X-Real-IP <span class="variable">$remote_addr</span>;  </span><br><span class="line">        proxy_set_header X-Forwarded-For <span class="variable">$proxy_add_x_forwarded_for</span>;  </span><br><span class="line">        proxy_set_header X-Forwarded-Proto https;  </span><br><span class="line">        </span><br><span class="line">        proxy_http_version 1.1;  </span><br><span class="line">        proxy_set_header Upgrade <span class="variable">$http_upgrade</span>;  </span><br><span class="line">        proxy_set_header Connection <span class="string">&quot;upgrade&quot;</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line"></span><br><span class="line">    access_log /www/wwwlogs/bt.log combined;  </span><br><span class="line">    error_log /www/wwwlogs/bt.error.log warn;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="配置passbolt"><a href="#配置passbolt" class="headerlink" title="配置passbolt"></a>配置passbolt</h4><p>接下来是密码管理器，过程就不再重复了，在这篇文章中已经写过了：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://anneballa.github.io/posts/c9b950e8cf7c/</span><br></pre></td></tr></table></figure>
+
+<p>有变化的可能也就这些，docker-compose有最新版本：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> curl -L <span class="string">&quot;https://github.com/docker/compose/releases/download/v2.31.0/docker-compose-<span class="subst">$(uname -s)</span>-<span class="subst">$(uname -m)</span>&quot;</span> -o /usr/local/bin/docker-compose</span><br></pre></td></tr></table></figure>
+
+<p>还有docker文件我做了一些变更，因为有时候重启docker容器的IP地址会出现变化，我将其在文件中写死固定，可以为将来省很多人力维护成本。</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">version: <span class="string">&quot;3.9&quot;</span>  </span><br><span class="line"></span><br><span class="line">services:  </span><br><span class="line">  db:  </span><br><span class="line">    image: mariadb:10.11  </span><br><span class="line">    restart: unless-stopped  </span><br><span class="line">    environment:  </span><br><span class="line">      MYSQL_RANDOM_ROOT_PASSWORD: <span class="string">&quot;true&quot;</span>  </span><br><span class="line">      MYSQL_DATABASE: <span class="string">&quot;<span class="variable">$YOUR_DB</span>&quot;</span>  </span><br><span class="line">      MYSQL_USER: <span class="string">&quot;<span class="variable">$YOUR_USER</span>&quot;</span>  </span><br><span class="line">      MYSQL_PASSWORD: <span class="string">&quot;<span class="variable">$YOUR_PASSWD</span>&quot;</span>  </span><br><span class="line">    volumes:  </span><br><span class="line">      - database_volume:/var/lib/mysql  </span><br><span class="line">    networks:  </span><br><span class="line">      passbolt_network:  </span><br><span class="line">        ipv4_address: 172.18.0.2  </span><br><span class="line"></span><br><span class="line">  passbolt:  </span><br><span class="line">    image: passbolt/passbolt:latest-ce  </span><br><span class="line">    restart: unless-stopped  </span><br><span class="line">    depends_on:  </span><br><span class="line">      - db  </span><br><span class="line">    environment:  </span><br><span class="line">      APP_FULL_BASE_URL: https://pwd.domain.name  </span><br><span class="line">      DATASOURCES_DEFAULT_HOST: <span class="string">&quot;db&quot;</span>  </span><br><span class="line">      DATASOURCES_DEFAULT_USERNAME: <span class="string">&quot;<span class="variable">$YOUR_USER</span>&quot;</span>  </span><br><span class="line">      DATASOURCES_DEFAULT_PASSWORD: <span class="string">&quot;<span class="variable">$YOUR_PASSWD</span>&quot;</span>  </span><br><span class="line">      DATASOURCES_DEFAULT_DATABASE: <span class="string">&quot;<span class="variable">$YOUR_PASSWD</span>&quot;</span>  </span><br><span class="line">    volumes:  </span><br><span class="line">      - gpg_volume:/etc/passbolt/gpg  </span><br><span class="line">      - jwt_volume:/etc/passbolt/jwt  </span><br><span class="line">    <span class="built_in">command</span>:  </span><br><span class="line">      [  </span><br><span class="line">        <span class="string">&quot;/usr/bin/wait-for.sh&quot;</span>,  </span><br><span class="line">        <span class="string">&quot;-t&quot;</span>,  </span><br><span class="line">        <span class="string">&quot;0&quot;</span>,  </span><br><span class="line">        <span class="string">&quot;db:3306&quot;</span>,  </span><br><span class="line">        <span class="string">&quot;--&quot;</span>,  </span><br><span class="line">        <span class="string">&quot;/docker-entrypoint.sh&quot;</span>,  </span><br><span class="line">      ]  </span><br><span class="line">    networks:  </span><br><span class="line">      passbolt_network:  </span><br><span class="line">        ipv4_address: 172.18.0.3  </span><br><span class="line"></span><br><span class="line">volumes:  </span><br><span class="line">  database_volume:  </span><br><span class="line">  gpg_volume:  </span><br><span class="line">  jwt_volume:  </span><br><span class="line"></span><br><span class="line">networks:  </span><br><span class="line">  passbolt_network:  </span><br><span class="line">    driver: bridge  </span><br><span class="line">    ipam:  </span><br><span class="line">      config:  </span><br><span class="line">        - subnet: 172.18.0.0/16  </span><br><span class="line">    name: passbolt_network </span><br></pre></td></tr></table></figure>
+
+<p>然后启动容器：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> docker-compose -f docker-compose-ce.yaml up -d</span><br></pre></td></tr></table></figure>
+
+<p>在nginx中配置反向代理：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /www/server/nginx/conf/vhost/pwd.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">server &#123;  </span><br><span class="line">    listen 443 ssl;  </span><br><span class="line">    listen [::]:443 ssl;  </span><br><span class="line">    http2 on;  </span><br><span class="line">    server_name pwd.domain.name;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment">#日志</span></span><br><span class="line">    access_log /www/wwwlogs/Passbolt_access.<span class="built_in">log</span> combined buffer=512k flush=1m;  </span><br><span class="line">   	error_log /www/wwwlogs/Passbolt_error.<span class="built_in">log</span> warn;</span><br><span class="line"></span><br><span class="line">    <span class="comment"># SSL证书配置  </span></span><br><span class="line">    ssl_certificate /www/Certs/domain.name.cer;  </span><br><span class="line">    ssl_certificate_key /www/Certs/domain.name.key;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># SSL优化   </span></span><br><span class="line">    ssl_session_timeout 1h;  </span><br><span class="line">    ssl_protocols TLSv1.2 TLSv1.3;  </span><br><span class="line">    ssl_ciphers HIGH:!aNULL:!MD5;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 安全头部  </span></span><br><span class="line">    add_header Strict-Transport-Security <span class="string">&quot;max-age=31536000&quot;</span> always;  </span><br><span class="line">    add_header X-Content-Type-Options nosniff always;  </span><br><span class="line">    add_header X-Frame-Options SAMEORIGIN always;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 日志配置  </span></span><br><span class="line">    access_log /www/wwwlogs/pwd.access.log combined buffer=32k;  </span><br><span class="line">    error_log /www/wwwlogs/pwd.error.log warn;  </span><br><span class="line">    server_tokens off;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 客户端优化 - 密码管理器场景  </span></span><br><span class="line">    client_max_body_size 5m;  </span><br><span class="line">    client_body_buffer_size 32k;  </span><br><span class="line">    client_body_timeout 15s;  </span><br><span class="line">    client_header_timeout 15s;  </span><br><span class="line">    keepalive_timeout 20s;  </span><br><span class="line">    keepalive_requests 50;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 主要location配置  </span></span><br><span class="line">    location / &#123;  </span><br><span class="line">        proxy_pass https://172.18.0.3;  </span><br><span class="line">        </span><br><span class="line">         <span class="comment"># 适中的缓冲区配置  </span></span><br><span class="line">         proxy_buffers 4 32k;           <span class="comment"># 4个32KB缓冲区，总128KB  </span></span><br><span class="line">         proxy_buffer_size 32k;          <span class="comment"># 32KB响应头缓冲  </span></span><br><span class="line">         proxy_busy_buffers_size 96k;    <span class="comment"># 留出一定缓冲空间  </span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 超时设置  </span></span><br><span class="line">        proxy_connect_timeout 15s;  </span><br><span class="line">        proxy_send_timeout 15s;  </span><br><span class="line">        proxy_read_timeout 15s;  </span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 代理头部设置  </span></span><br><span class="line">        proxy_set_header Host <span class="variable">$host</span>;  </span><br><span class="line">        proxy_set_header X-Real-IP <span class="variable">$remote_addr</span>;  </span><br><span class="line">        proxy_set_header X-Forwarded-For <span class="variable">$proxy_add_x_forwarded_for</span>;  </span><br><span class="line">        proxy_set_header X-Forwarded-Proto <span class="variable">$scheme</span>;  </span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 缓存控制  </span></span><br><span class="line">        add_header Cache-Control <span class="string">&quot;no-store, no-cache, must-revalidate&quot;</span>;  </span><br><span class="line">        expires 0;  </span><br><span class="line">    &#125;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 静态资源处理  </span></span><br><span class="line">    location ~* \.(css|js|gif|jpeg|png|ico|svg)$ &#123;  </span><br><span class="line">        proxy_pass https://172.18.0.3;  </span><br><span class="line">        expires 1h;  </span><br><span class="line">        add_header Cache-Control <span class="string">&quot;public, no-transform&quot;</span>;  </span><br><span class="line">        access_log off;  </span><br><span class="line">    &#125;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 健康检查  </span></span><br><span class="line">    location /healthz &#123;  </span><br><span class="line">        access_log off;  </span><br><span class="line">        <span class="built_in">return</span> 200 <span class="string">&quot;healthy\n&quot;</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;  </span><br></pre></td></tr></table></figure>
+
+<p>为自己注册一个账号：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> passbolt su -m -c <span class="string">&quot;bin/cake passbolt register_user -u your@email.com -f yourname -l surname -r admin&quot;</span> -s /bin/sh www-data</span><br></pre></td></tr></table></figure>
+
+<p>点击注册链接进行注册，然后将之前密码管理从之前的环境导出，再导入就可以完美迁移。</p>
+<h4 id="配置Code-server"><a href="#配置Code-server" class="headerlink" title="配置Code-server"></a>配置Code-server</h4><p>安装Code-server：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -fsSL https://code-server.dev/install.sh | sh</span><br></pre></td></tr></table></figure>
+
+<p>配置Codeserver文件：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim <span class="variable">$HOME</span>/.config/code-server/config.yaml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">bind-addr: 127.0.0.1:8080</span><br><span class="line">auth: password</span><br><span class="line">password: **********************</span><br><span class="line">cert: <span class="literal">false</span></span><br><span class="line">disable-telemetry: <span class="literal">true</span>              <span class="comment"># 禁用遥测  </span></span><br><span class="line">disable-update-check: <span class="literal">true</span>           <span class="comment"># 禁用更新检查  </span></span><br><span class="line">disable-workspace-trust: <span class="literal">true</span>        <span class="comment"># 禁用工作区信任提示  </span></span><br><span class="line">user-data-dir: <span class="variable">$HOME</span>/.config/code-server  </span><br><span class="line">extensions-dir: <span class="variable">$HOME</span>/.config/code-server/extensions </span><br></pre></td></tr></table></figure>
+
+<p>配置反向代理：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /www/server/nginx/conf/vhost/code.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">server &#123;  </span><br><span class="line">        listen 443 ssl;  </span><br><span class="line">        http2 on;  <span class="comment"># 新的 HTTP/2 配置方式  </span></span><br><span class="line">        server_name codeserver.pve.domain.name;  </span><br><span class="line">        </span><br><span class="line">        <span class="comment"># SSL 配置  </span></span><br><span class="line">        ssl_certificate /www/Certs/pve.domain.name.cer;  </span><br><span class="line">        ssl_certificate_key /www/Certs/pve.domain.name.key;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">#日志</span></span><br><span class="line">        access_log /www/wwwlogs/code-server_access.log combined buffer=512k flush=1m;  </span><br><span class="line">    	error_log /www/wwwlogs/code-server_error.log warn;</span><br><span class="line">    	</span><br><span class="line">        <span class="comment"># SSL优化</span></span><br><span class="line">        ssl_session_cache shared:SSL:10m;  </span><br><span class="line">		ssl_session_timeout 10m;  </span><br><span class="line">		ssl_prefer_server_ciphers on;  </span><br><span class="line">		ssl_protocols TLSv1.2 TLSv1.3;  </span><br><span class="line">		ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;  </span><br><span class="line">       </span><br><span class="line">        <span class="comment"># 性能优化</span></span><br><span class="line">        sendfile on;  </span><br><span class="line">		tcp_nopush on;  </span><br><span class="line">		tcp_nodelay on;  </span><br><span class="line">		keepalive_timeout 65;  </span><br><span class="line">		types_hash_max_size 2048;  </span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 代理配置  </span></span><br><span class="line">        location / &#123;  </span><br><span class="line">            proxy_pass http://localhost:8080;  </span><br><span class="line">       		proxy_set_header Host <span class="variable">$host</span>;  </span><br><span class="line">        	proxy_set_header Upgrade <span class="variable">$http_upgrade</span>;  </span><br><span class="line">        	proxy_set_header Connection <span class="string">&quot;upgrade&quot;</span>;  </span><br><span class="line">        	proxy_set_header Accept-Encoding gzip;  </span><br><span class="line">        	proxy_set_header X-Real-IP <span class="variable">$remote_addr</span>;  </span><br><span class="line">        	proxy_set_header X-Forwarded-For <span class="variable">$proxy_add_x_forwarded_for</span>;  </span><br><span class="line">       	    proxy_set_header X-Forwarded-Proto <span class="variable">$scheme</span>; </span><br><span class="line">            </span><br><span class="line">            <span class="comment"># WebSocket 支持  </span></span><br><span class="line">        	proxy_http_version 1.1;  </span><br><span class="line">        	proxy_buffering off;  </span><br><span class="line">        	proxy_read_timeout 86400;  </span><br><span class="line">        	proxy_send_timeout 86400;  </span><br><span class="line">            </span><br><span class="line">            <span class="comment"># 超时设置  </span></span><br><span class="line">            proxy_connect_timeout 60s;  </span><br><span class="line">            </span><br><span class="line">        &#125;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置开机自启，创建普通用户层级的，不要系统层级的：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p ~/.config/systemd/user/  </span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">vim ~/.config/systemd/user/code-server.service</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">[Unit]  </span><br><span class="line">Description=Code Server  </span><br><span class="line">After=network.target  </span><br><span class="line"></span><br><span class="line">[Service]  </span><br><span class="line">Type=simple  </span><br><span class="line">Environment=HOME=%h  </span><br><span class="line">Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin  </span><br><span class="line">Environment=NODE_OPTIONS=--max-old-space-size=1024  </span><br><span class="line"></span><br><span class="line">ExecStart=/usr/bin/code-server  </span><br><span class="line"></span><br><span class="line">Restart=always  </span><br><span class="line">RestartSec=10  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 资源限制  </span></span><br><span class="line">MemoryMax=2G  </span><br><span class="line">MemoryHigh=1.5G  </span><br><span class="line">MemoryLow=512M  </span><br><span class="line">CPUQuota=150%  </span><br><span class="line">CPUWeight=100  </span><br><span class="line">LimitNOFILE=65535  </span><br><span class="line">OOMScoreAdjust=-100  </span><br><span class="line"></span><br><span class="line">[Install]  </span><br><span class="line">WantedBy=default.target</span><br></pre></td></tr></table></figure>
+
+<p>重载服务：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 重载用户服务配置  </span></span><br><span class="line">systemctl --user daemon-reload  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 启用服务（开机自启）  </span></span><br><span class="line">systemctl --user <span class="built_in">enable</span> code-server  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 立即启动服务  </span></span><br><span class="line">systemctl --user start code-server</span><br></pre></td></tr></table></figure>
+
+<h4 id="配置PVE"><a href="#配置PVE" class="headerlink" title="配置PVE"></a>配置PVE</h4><p>每次点开PVE都得点浏览器证书不受信任，最主要是还得加端口才能访问，我试过iptables，效果一般，所以也直接用这台web服务器的nginx做反向代理：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /www/server/nginx/conf/vhost/pve.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">server &#123;  </span><br><span class="line">    listen 443 ssl;  </span><br><span class="line">    server_name pve.domain.name;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># PVE 默认 SSL 证书  </span></span><br><span class="line">    ssl_certificate /www/Certs/pve.domain.name.cer;  </span><br><span class="line">    ssl_certificate_key /www/Certs/pve.domain.name.key;  </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 日志</span></span><br><span class="line">	access_log /www/wwwlogs/proxmox_access.log combined buffer=512k flush=1m;  </span><br><span class="line">    error_log /www/wwwlogs/proxmox_error.log warn;</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 大文件上传配置  </span></span><br><span class="line">    client_max_body_size 100G;  <span class="comment"># 根据需要调整上传大小限制  </span></span><br><span class="line">    client_body_buffer_size 1M;  </span><br><span class="line">    client_body_timeout 3600s;  <span class="comment"># 上传超时时间  </span></span><br><span class="line"></span><br><span class="line">    location / &#123;  </span><br><span class="line">        proxy_pass https://100.64.233.10:8006;  </span><br><span class="line"></span><br><span class="line">        <span class="comment"># WebSocket 和长连接支持  </span></span><br><span class="line">        proxy_http_version 1.1;  </span><br><span class="line">        proxy_set_header Upgrade <span class="variable">$http_upgrade</span>;  </span><br><span class="line">        proxy_set_header Connection <span class="string">&quot;upgrade&quot;</span>;  </span><br><span class="line"></span><br><span class="line">        <span class="comment"># 代理头设置  </span></span><br><span class="line">        proxy_set_header Host <span class="variable">$host</span>;  </span><br><span class="line">        proxy_set_header X-Real-IP <span class="variable">$remote_addr</span>;  </span><br><span class="line">        proxy_set_header X-Forwarded-For <span class="variable">$proxy_add_x_forwarded_for</span>;  </span><br><span class="line">        proxy_set_header X-Forwarded-Proto <span class="variable">$scheme</span>;  </span><br><span class="line"></span><br><span class="line">        <span class="comment"># 性能和超时配置  </span></span><br><span class="line">        proxy_redirect off;  </span><br><span class="line">        proxy_buffering off;  </span><br><span class="line"></span><br><span class="line">        <span class="comment"># 长时间操作支持  </span></span><br><span class="line">        proxy_connect_timeout 3600s;  </span><br><span class="line">        proxy_send_timeout 3600s;  </span><br><span class="line">        proxy_read_timeout 3600s;  </span><br><span class="line">        send_timeout 3600s;  </span><br><span class="line">    &#125;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 额外的性能和安全配置  </span></span><br><span class="line">    keepalive_timeout 650;  </span><br><span class="line">    send_timeout 600;  </span><br><span class="line">&#125;  </span><br></pre></td></tr></table></figure>
+
+<p>这下就没告警了。</p>
+<h4 id="配置Blog"><a href="#配置Blog" class="headerlink" title="配置Blog"></a>配置Blog</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> vim /www/server/nginx/conf/vhost/blog.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">server &#123;  </span><br><span class="line">    listen 443 ssl;  </span><br><span class="line">    listen [::]:443 ssl;  </span><br><span class="line">    http2 on;  </span><br><span class="line">    server_name blog.domain.name;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 简化SSL配置  </span></span><br><span class="line">    ssl_certificate /www/Certs/domain.name.cer;  </span><br><span class="line">    ssl_certificate_key /www/Certs/domain.name.key;  </span><br><span class="line">    ssl_protocols TLSv1.2 TLSv1.3;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 日志配置可以更简单  </span></span><br><span class="line">    access_log /www/wwwlogs/blog_access.log combined;  </span><br><span class="line">    error_log /www/wwwlogs/blog_error.log;  </span><br><span class="line">    </span><br><span class="line">    root /www/wwwroot/Blog/public;  </span><br><span class="line">    index index.html index.htm;  </span><br><span class="line"></span><br><span class="line">    location / &#123;  </span><br><span class="line">        try_files <span class="variable">$uri</span> <span class="variable">$uri</span>/ /index.html;  </span><br><span class="line">    &#125;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 静态资源基本处理  </span></span><br><span class="line">    location ~* \.(jpg|jpeg|png|gif|css|js|ico|svg)$ &#123;  </span><br><span class="line">        expires 30d;  </span><br><span class="line">    &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置Windows"><a href="#配置Windows" class="headerlink" title="配置Windows"></a>配置Windows</h2><p>在我尝试为自己安装一台windows的时候，发现与安装linux不一样，多了一些功能按钮：</p>
+<p><img src="/pageimgs/image-20241208213905902.png" alt="image-20241208213905902"></p>
+<p>VirtIO驱动不安装可能会导致部分驱动无法正常识别，下载地址在：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.266-1/</span><br></pre></td></tr></table></figure>
+
+<p>Win11必须安全引导的，不然引导起不来，除了内存和磁盘，一路保持默认就好。到这一步会加载不到磁盘：</p>
+<p><img src="/pageimgs/image-20241208220408644.png" alt="image-20241208220408644"></p>
+<p>从刚刚挂载的VirtIO驱动镜像进行安装：</p>
+<p><img src="/pageimgs/image-20241208220515974.png" alt="image-20241208220515974"></p>
+<p>接下来正常安装就好。然后到联网激活那里会监测不到网络驱动：</p>
+<p><img src="/pageimgs/image-20241208222552058.png" alt="image-20241208222552058"></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">shift</span> + F10 </span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">OOBE\BypassNRO.cmd</span><br></pre></td></tr></table></figure>
+
+<p>然后正常点击没有网络安装完成，接着去找virtio镜像，用这个装驱动：</p>
+<p><img src="/pageimgs/image-20241208223102071.png" alt="image-20241208223102071"></p>
+<p>然后就有网卡驱动了：</p>
+<p><img src="/pageimgs/image-20241208223237377.png" alt="image-20241208223237377"></p>
+<h2 id="配置Fnos"><a href="#配置Fnos" class="headerlink" title="配置Fnos"></a>配置Fnos</h2><p>考虑了一下我只是放一些自己的工具，代码之类的，群晖那么多高级功能我又不用，刚好最近发现了这一款系统，基于debian 12的，我准备使用它来构建个人云存储了：</p>
+<figure class="highlight http"><table><tr><td class="code"><pre><span class="line">https://www.fnnas.com/</span><br></pre></td></tr></table></figure>
+
+<p>看了下官方文档，创建虚拟机镜像和平常Linux没啥区别，磁盘我选择给了256GB固态，因为说该系统剩下的空间可以用来存储，我估摸着差不多，创建虚拟机打开：</p>
+<p><img src="/pageimgs/image-20241208223509352.png" alt="image-20241208223509352"></p>
+<p>系统分区官方给了64GB，就先按64GB设置，不差这点空间。等待安装完成后会默认DHCP获取个IP地址：</p>
+<p><img src="/pageimgs/image-20241208223858283.png" alt="image-20241208223858283"></p>
+<p>点击保存会提示重启进入系统。这里与PVE一样会显示web管理URL</p>
+<p><img src="/pageimgs/image-20241208223947828.png" alt="image-20241208223947828"></p>
+<p>8000端口是http协议的，如果要https直接输入https会被跳转重定向到5667端口。然后初始化的设备命名，设置管理员账号密码等。登录进入后提示创建存储空间，这就是系统分区完剩下的固态硬盘：</p>
+<p><img src="/pageimgs/image-20241208224610850.png" alt="image-20241208224610850"></p>
+<p>我是单固态硬盘，所以选Basic模式，自己用肯定空间不限制：</p>
+<p><img src="/pageimgs/image-20241208224745292.png" alt="image-20241208224745292"></p>
+<p>为存储分区添加个备注：</p>
+<p><img src="/pageimgs/image-20241208224821011.png" alt="image-20241208224821011"></p>
+<p>会要求二次认证：</p>
+<p><img src="/pageimgs/image-20241208224839585.png" alt="image-20241208224839585"></p>
+<p>这个UI挺符合我的审美：</p>
+<p><img src="/pageimgs/image-20241208224944044.png" alt="image-20241208224944044"></p>
+<h4 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h4><p>飞牛OS有自己的APP，借助NAS自己的挂载和APP可以实现多端文件同步，终于可以告别多个设备来回传输文件的痛苦了。首先需要将SSH服务给开启：</p>
+<p><img src="/pageimgs/image-20241208225903172.png" alt="image-20241208225903172"></p>
+<p>然后就可以ssh进行登录：</p>
+<p><img src="/pageimgs/image-20241208231046323.png" alt="image-20241208231046323"></p>
+<p>直接敲命令：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl -fsSL https://tailscale.com/install.sh | sh</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> tailscale up</span><br></pre></td></tr></table></figure>
+
+<p>每次肯定不能直接填写IP地址进行访问实在不优雅，而且HTTPS证书不可信会触发浏览器警告。这里选择使用tailscale为机器添加白名单证书，需要在Tailscale面板中开启：</p>
+<p><img src="/pageimgs/image-20241208235035371.png" alt="image-20241208235035371"></p>
+<p>然后在终端中敲以下命令：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sudo</span> tailscale cert tailscale.domain.name <span class="comment">#机器名在Tailscale中的名字</span></span><br></pre></td></tr></table></figure>
+
+<p>拿到证书后在Fnos系统设置里上传证书：</p>
+<p><img src="/pageimgs/image-20241208235353393.png" alt="image-20241208235353393"></p>
+<p>将端口也改掉：</p>
+<p><img src="/pageimgs/image-20241208235444002.png" alt="image-20241208235444002"></p>
+<p>配置成功，优雅：</p>
+<p><img src="/pageimgs/image-20241208235628374.png" alt="image-20241208235628374"></p>
+]]></content>
+      <categories>
+        <category>Environment Exploration</category>
+      </categories>
+      <tags>
+        <tag>Infrastructure</tag>
+      </tags>
+  </entry>
 </search>
