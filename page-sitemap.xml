@@ -11,16 +11,7 @@
     
     <url>
         <loc>https://anneballa.github.io/categories/</loc>
-        <lastmod>2024-11-17T06:43:42.107Z</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    
-    
-    
-    <url>
-        <loc>https://anneballa.github.io/tags/</loc>
-        <lastmod>2024-11-17T06:43:41.183Z</lastmod>
+        <lastmod>2024-11-17T06:43:42.000Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
@@ -29,7 +20,16 @@
     
     <url>
         <loc>https://anneballa.github.io/google9f1e58f8cc94c789.html</loc>
-        <lastmod>2024-11-17T06:43:41.139Z</lastmod>
+        <lastmod>2024-11-17T06:43:41.000Z</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    
+    
+    
+    <url>
+        <loc>https://anneballa.github.io/tags/</loc>
+        <lastmod>2024-11-17T06:43:41.000Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
