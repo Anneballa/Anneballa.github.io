@@ -1,0 +1,503 @@
+<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>端口使用优化 | Whimsical Whirls</title><meta name="author" content="Annabelle"><meta name="copyright" content="Annabelle"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#FFFFFF"><meta name="description" content="某些组织内部关于端口使用有规范要求，比如只允许开放80,8080,8000等标准化端口，而又有资源最大化利用，降低成本的初心，可以考虑通过Nginx监听80端口，根据不同的server_name分别进行转发。某些组织内部 建议结合防火墙使用，iptables添加允许本地IP进行访问，拒绝端口从外部访问： 1234567891011# 允许来自本地的 TCP 协议访问端口 8000  sudo ip">
+<meta property="og:type" content="article">
+<meta property="og:title" content="端口使用优化">
+<meta property="og:url" content="https://anneballa.github.io/posts/f15e01fd42c3/index.html">
+<meta property="og:site_name" content="Whimsical Whirls">
+<meta property="og:description" content="某些组织内部关于端口使用有规范要求，比如只允许开放80,8080,8000等标准化端口，而又有资源最大化利用，降低成本的初心，可以考虑通过Nginx监听80端口，根据不同的server_name分别进行转发。某些组织内部 建议结合防火墙使用，iptables添加允许本地IP进行访问，拒绝端口从外部访问： 1234567891011# 允许来自本地的 TCP 协议访问端口 8000  sudo ip">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://anneballa.github.io/img/cover1.jpg">
+<meta property="article:published_time" content="2024-12-24T05:45:06.390Z">
+<meta property="article:modified_time" content="2024-11-17T06:43:42.000Z">
+<meta property="article:author" content="Annabelle">
+<meta property="article:tag" content="Infrastructure">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://anneballa.github.io/img/cover1.jpg"><link rel="shortcut icon" href="/img/user.jpg"><link rel="canonical" href="https://anneballa.github.io/posts/f15e01fd42c3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""><link rel="preconnect" href="//hm.baidu.com"><link rel="preconnect" href="//static.cloudflareinsights.com"><link rel="preconnect" href="//www.clarity.ms"><link rel="preconnect" href="//busuanzi.ibruce.info"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!true && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#FFFFFF')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1A1A1A')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script async="async" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><script>(adsbygoogle = window.adsbygoogle || []).push({
+  google_ad_client: '',
+  enable_page_level_ads: 'true'
+});</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?5ccd7158aad871b7e138d1e94604570d";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+btf.addGlobalFn('pjaxComplete', () => {
+  _hmt.push(['_trackPageview',window.location.pathname])
+}, 'baidu_analytics')
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-E73YY60GZ0"></script><script>window.dataLayer = window.dataLayer || []
+function gtag(){dataLayer.push(arguments)}
+gtag('js', new Date())
+gtag('config', 'G-E73YY60GZ0')
+btf.addGlobalFn('pjaxComplete', () => {
+  gtag('config', 'G-E73YY60GZ0', {'page_path': window.location.pathname})
+}, 'google_analytics')
+</script><script defer="defer" data-pjax="data-pjax" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;419291430af34b7a80f2d0ec57b51e59&quot;}"></script><script>(function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window, document, "clarity", "script", "oikwumaw0s");</script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":true,"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"簡"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":500,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: {"chs_to_cht":"You have switched to Traditional Chinese","cht_to_chs":"You have switched to Simplified Chinese","day_to_night":"You have switched to Dark Mode","night_to_day":"You have switched to Light Mode","bgLight":"#1A1A1A","bgDark":"#1A1A1A","position":"bottom-left"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: true,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '端口使用优化',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  isShuoshuo: false
+}</script><style type="text/css"> .aplayer.aplayer-fixed.aplayer-narrow .aplayer-body { left: -66px !important; /* 默认情况下缩进左侧66px，只留一点箭头部分 */ }
+.aplayer.aplayer-fixed.aplayer-narrow .aplayer-body:hover { left: 0 !important; /* 鼠标悬停是左侧缩进归零，完全显示按钮 */ } </style><meta name="generator" content="Hexo 7.3.0"><script>function loadCss(l){var d=document,h=d.head,s=d.createElement('link');s.rel='stylesheet';s.href=l;!function e(f){if (d.body)return f();setTimeout(function(){e(f)})}(function(){h.appendChild(s);});}loadCss('/style.css');loadCss('https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css');loadCss('https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css');loadCss('https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css');loadCss('https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css');loadCss('https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css');</script><noscript><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.css"></noscript></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">Loading...</div></div></div><script>(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+  window.addEventListener('load', preloader.endLoading)
+
+  if (true) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/user.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">35</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories"><i class="fa-fw fa fa-file-text"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://anneballa.github.io/img/cover1.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Whimsical Whirls</span></a><a class="nav-page-title" href="/"><span class="site-name">端口使用优化</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> Search</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories"><i class="fa-fw fa fa-file-text"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">端口使用优化</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-12-24T05:45:06.390Z" title="Created 2024-12-24 13:45:06">2024-12-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2024-11-17T06:43:42.000Z" title="Updated 2024-11-17 14:43:42">2024-11-17</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Environment-Exploration/">Environment Exploration</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">Word Count:</span><span class="word-count">1.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">Reading Time:</span><span>5mins</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>某些组织内部关于端口使用有规范要求，比如只允许开放80,8080,8000等标准化端口，而又有资源最大化利用，降低成本的初心，可以考虑通过Nginx监听80端口，根据不同的server_name分别进行转发。某些组织内部</p>
+<p>建议结合防火墙使用，iptables添加允许本地IP进行访问，拒绝端口从外部访问：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 允许来自本地的 TCP 协议访问端口 8000  </span></span><br><span class="line"><span class="built_in">sudo</span> iptables -A INPUT -p tcp -s 127.0.0.1 --dport 8000 -j ACCEPT  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 允许来自本地的 UDP 协议访问端口 8000  </span></span><br><span class="line"><span class="built_in">sudo</span> iptables -A INPUT -p udp -s 127.0.0.1 --dport 8000 -j ACCEPT  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 阻止其他来源的 TCP 协议访问端口 8000  </span></span><br><span class="line"><span class="built_in">sudo</span> iptables -A INPUT -p tcp --dport 8000 -j DROP  </span><br><span class="line"></span><br><span class="line"><span class="comment"># 阻止其他来源的 UDP 协议访问端口 8000  </span></span><br><span class="line"><span class="built_in">sudo</span> iptables -A INPUT -p udp --dport 8000 -j DROP</span><br></pre></td></tr></tbody></table></figure>
+
+<p>本篇演示两个示例。首先找到Nginx做反向代理配置目录，使用宝塔等第三方服务器构建的配置文件路径可能略有不同，通常目录为：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/nginx/nginx.conf</span><br></pre></td></tr></tbody></table></figure>
+
+<p>为了条理清晰可以使用类似参数将配置文件存放在自定义目录：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016094715316-1729057686941-13.png" alt="image-20241016094715316"></p>
+<p>配置文件大概示例：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">server {</span><br><span class="line">    listen       80;</span><br><span class="line">    listen  [::]:80;</span><br><span class="line">    server_name domain_name;</span><br><span class="line"></span><br><span class="line">    access_log  /var/log/nginx/file.access.log;</span><br><span class="line">    error_log   /var/log/nginx/file.error.log;</span><br><span class="line"></span><br><span class="line">    server_tokens off;</span><br><span class="line">    error_page  404              /404.html;</span><br><span class="line"></span><br><span class="line">    error_page   500 502 503 504  /50x.html;</span><br><span class="line">    location = /50x.html {</span><br><span class="line">        root   /usr/share/nginx/html;</span><br><span class="line">    }</span><br><span class="line"></span><br><span class="line">    client_max_body_size 50m;</span><br><span class="line"></span><br><span class="line">    location / {</span><br><span class="line">        root   /usr/share/nginx/html;</span><br><span class="line">        index  index.html index.htm;</span><br><span class="line">        proxy_pass http://xx.xx.xx.xx:xx;</span><br><span class="line">        proxy_buffer_size 128k;</span><br><span class="line">        proxy_buffers 32 128k;</span><br><span class="line">        proxy_busy_buffers_size 128k;</span><br><span class="line">        proxy_connect_timeout 300s;</span><br><span class="line">        proxy_send_timeout 300s;</span><br><span class="line">        proxy_read_timeout 300s;</span><br><span class="line">        proxy_set_header Host <span class="variable">$host</span>;</span><br><span class="line">        proxy_set_header X-Real-IP <span class="variable">$remote_addr</span>;</span><br><span class="line">        proxy_set_header X-Forwarded-For <span class="variable">$proxy_add_x_forwarded_for</span>;</span><br><span class="line">        proxy_set_header X-Forwarded-Proto http;</span><br><span class="line">    }</span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+
+<h3 id="Nginx反向代理Docker容器"><a href="#Nginx反向代理Docker容器" class="headerlink" title="Nginx反向代理Docker容器"></a>Nginx反向代理Docker容器</h3><p>以Passbolt密码管理为例，这是它的yaml构建文件：</p>
+<figure class="highlight yaml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">"3.9"</span></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">db:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">mariadb:10.11</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="attr">MYSQL_RANDOM_ROOT_PASSWORD:</span> <span class="string">"true"</span></span><br><span class="line">      <span class="attr">MYSQL_DATABASE:</span> <span class="string">"passbolt"</span></span><br><span class="line">      <span class="attr">MYSQL_USER:</span> <span class="string">"passbolt"</span></span><br><span class="line">      <span class="attr">MYSQL_PASSWORD:</span> <span class="string">"*************"</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">database_volume:/var/lib/mysql</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">passbolt:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">passbolt/passbolt:latest-ce</span></span><br><span class="line">    <span class="comment">#Alternatively you can use rootless:</span></span><br><span class="line">    <span class="comment">#image: passbolt/passbolt:latest-ce-non-root</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">    <span class="attr">depends_on:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">db</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="attr">APP_FULL_BASE_URL:</span> <span class="string">https://passbolt.local</span></span><br><span class="line">      <span class="attr">DATASOURCES_DEFAULT_HOST:</span> <span class="string">"db"</span></span><br><span class="line">      <span class="attr">DATASOURCES_DEFAULT_USERNAME:</span> <span class="string">"passbolt"</span></span><br><span class="line">      <span class="attr">DATASOURCES_DEFAULT_PASSWORD:</span> <span class="string">"*************"</span></span><br><span class="line">      <span class="attr">DATASOURCES_DEFAULT_DATABASE:</span> <span class="string">"passbolt"</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">gpg_volume:/etc/passbolt/gpg</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">jwt_volume:/etc/passbolt/jwt</span></span><br><span class="line">    <span class="attr">command:</span></span><br><span class="line">      [</span><br><span class="line">        <span class="string">"/usr/bin/wait-for.sh"</span>,</span><br><span class="line">        <span class="string">"-t"</span>,</span><br><span class="line">        <span class="string">"0"</span>,</span><br><span class="line">        <span class="string">"db:3306"</span>,</span><br><span class="line">        <span class="string">"--"</span>,</span><br><span class="line">        <span class="string">"/docker-entrypoint.sh"</span>,</span><br><span class="line">      ]</span><br><span class="line">    <span class="comment"># 为了符合内部端口标准规范，ports可以直接不写</span></span><br><span class="line">    <span class="comment">#ports:</span></span><br><span class="line">    <span class="comment">#  - 8888:80</span></span><br><span class="line">   <span class="comment">#   - 4443:443</span></span><br><span class="line">    <span class="comment">#Alternatively for non-root images:</span></span><br><span class="line">    <span class="comment"># - 80:8080</span></span><br><span class="line">    <span class="comment"># - 443:4433</span></span><br><span class="line"></span><br><span class="line"><span class="attr">volumes:</span></span><br><span class="line">  <span class="attr">database_volume:</span></span><br><span class="line">  <span class="attr">gpg_volume:</span></span><br><span class="line">  <span class="attr">jwt_volume:</span></span><br></pre></td></tr></tbody></table></figure>
+
+<p>构建Docker容器：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose -f docker-compose-ce.yaml up -d</span><br></pre></td></tr></tbody></table></figure>
+
+<p>进入docker容器查看容器分配的ip：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016101418271.png" alt="image-20241016101418271"></p>
+<p>将其与yaml文件中分配的域名，写进本地hosts文件中：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016101630441.png" alt="image-20241016101630441"></p>
+<p>如果是https协议，需要使用HTTPS证书，生成证书签名：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out private.key 2048</span><br><span class="line">openssl req -new -key private.key -out certificate.csr</span><br></pre></td></tr></tbody></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016105140711.png" alt="image-20241016105140711"></p>
+<p>再生成自签名证书：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> certificate.csr -signkey private.key -out certificate.crt</span><br></pre></td></tr></tbody></table></figure>
+
+<p>构建Nginx反向代理配置文件：</p>
+<figure class="highlight yaml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">server</span> {  </span><br><span class="line">    <span class="string">listen</span> <span class="number">443</span> <span class="string">ssl;</span>  </span><br><span class="line">    <span class="string">listen</span> [<span class="string">::</span>]<span class="string">:443</span> <span class="string">ssl;</span>  </span><br><span class="line">    <span class="string">server_name</span> <span class="string">your-domain.com;</span>  <span class="comment"># 确保此hostname与你的域名匹配  </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># SSL证书配置  </span></span><br><span class="line">    <span class="string">ssl_certificate</span> <span class="string">/path/to/certificate.crt;</span>  </span><br><span class="line">    <span class="string">ssl_certificate_key</span> <span class="string">/path/to/private.key;</span>  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 日志和错误页面设置  </span></span><br><span class="line">    <span class="string">access_log</span> <span class="string">/var/log/nginx/your-domain.access.log;</span>  </span><br><span class="line">    <span class="string">error_log</span> <span class="string">/var/log/nginx/your-domain.error.log;</span>  </span><br><span class="line">    <span class="string">server_tokens</span> <span class="string">off;</span>  </span><br><span class="line"></span><br><span class="line">    <span class="string">error_page</span> <span class="number">404</span> <span class="string">/404.html;</span>  </span><br><span class="line">    <span class="string">error_page</span> <span class="number">500</span> <span class="number">502</span> <span class="number">503</span> <span class="number">504</span> <span class="string">/50x.html;</span>  </span><br><span class="line">    <span class="string">location</span> <span class="string">=</span> <span class="string">/50x.html</span> {  </span><br><span class="line">        <span class="string">root</span> <span class="string">/usr/share/nginx/html;</span>  </span><br><span class="line">    }  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 最大请求体大小  </span></span><br><span class="line">    <span class="string">client_max_body_size</span> <span class="string">50m;</span>  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 反向代理设置  </span></span><br><span class="line">    <span class="string">location</span> <span class="string">/</span> {  </span><br><span class="line">        <span class="string">proxy_pass</span> <span class="string">http://your-backend-service;</span>  <span class="comment"># 使用您的实际后端服务地址  </span></span><br><span class="line">        <span class="string">root</span> <span class="string">/usr/share/nginx/html;</span>  <span class="comment"># 如果不需要，可以删除  </span></span><br><span class="line"></span><br><span class="line">        <span class="comment"># Proxy配置项  </span></span><br><span class="line">        <span class="string">proxy_buffer_size</span> <span class="string">128k;</span>  </span><br><span class="line">        <span class="string">proxy_buffers</span> <span class="number">32</span> <span class="string">128k;</span>  </span><br><span class="line">        <span class="string">proxy_busy_buffers_size</span> <span class="string">128k;</span>  </span><br><span class="line">        <span class="string">proxy_connect_timeout</span> <span class="string">300s;</span>  </span><br><span class="line">        <span class="string">proxy_send_timeout</span> <span class="string">300s;</span>  </span><br><span class="line">        <span class="string">proxy_read_timeout</span> <span class="string">300s;</span>  </span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 设置请求头  </span></span><br><span class="line">        <span class="string">proxy_set_header</span> <span class="string">Host</span> <span class="string">$host;</span>  </span><br><span class="line">        <span class="string">proxy_set_header</span> <span class="string">X-Real-IP</span> <span class="string">$remote_addr;</span>  </span><br><span class="line">        <span class="string">proxy_set_header</span> <span class="string">X-Forwarded-For</span> <span class="string">$proxy_add_x_forwarded_for;</span>  </span><br><span class="line">        <span class="string">proxy_set_header</span> <span class="string">X-Forwarded-Proto</span> <span class="string">$scheme;</span>  <span class="comment"># 使用 $scheme 自动适配协议  </span></span><br><span class="line">    }  </span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+
+<p>配置完成后更新nginx配置：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> nginx -s reload</span><br></pre></td></tr></tbody></table></figure>
+
+<p>然后使用其他浏览器打开：</p>
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016105830012.png" alt="image-20241016105830012"></p>
+<h3 id="非虚拟环境Web："><a href="#非虚拟环境Web：" class="headerlink" title="非虚拟环境Web："></a>非虚拟环境Web：</h3><p>非虚拟环境Web不需要反代，直接在配置文件中新建解析就行，以Docusaurus应用为例，建议使用HTTPS协议，先生成证书签名：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out private.key 2048</span><br></pre></td></tr></tbody></table></figure>
+
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl req -new -key private.key -out certificate.csr</span><br></pre></td></tr></tbody></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016120337099.png" alt="image-20241016120337099"></p>
+<p>生成证书签名:</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> certificate.csr -signkey private.key -out certificate.crt</span><br></pre></td></tr></tbody></table></figure>
+
+<p>在配置中添加如下，示例配置</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">server {  </span><br><span class="line">    listen 443 ssl;  <span class="comment"># 监听443端口并启用SSL  </span></span><br><span class="line">    server_name example.com;  <span class="comment"># 指定域名  </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># SSL 证书配置  </span></span><br><span class="line">    ssl_certificate /path/to/your/certificate.crt;  </span><br><span class="line">    ssl_certificate_key /path/to/your/private.key;  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># SSL 配置  </span></span><br><span class="line">    ssl_protocols TLSv1.2 TLSv1.3;  <span class="comment"># 选择支持的协议版本  </span></span><br><span class="line">    ssl_ciphers HIGH:!aNULL:!MD5;   <span class="comment"># 加密套件配置  </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 网站根目录  </span></span><br><span class="line">    root /path/to/your/site/root;  </span><br><span class="line">    index index.html index.htm;  <span class="comment"># 默认载入页面  </span></span><br><span class="line"></span><br><span class="line">    location / {  </span><br><span class="line">        try_files <span class="variable">$uri</span> <span class="variable">$uri</span>/ =404;  <span class="comment"># 按文件名尝试加载文件，失败返回404  </span></span><br><span class="line">    }  </span><br><span class="line"></span><br><span class="line">    <span class="comment"># 日志设置  </span></span><br><span class="line">    access_log /var/log/nginx/access.log;  </span><br><span class="line">    error_log /var/log/nginx/error.log;  </span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+
+<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><p>如果不想暴露后端证书中的域名，可以为Nginx单独配置一个证书：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out private.key 2048</span><br></pre></td></tr></tbody></table></figure>
+
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl req -new -key private.key -out certificate.csr</span><br></pre></td></tr></tbody></table></figure>
+
+<p>生成签名证书：</p>
+<figure class="highlight bash"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> certificate.csr -signkey private.key -out certificate.crt</span><br></pre></td></tr></tbody></table></figure>
+
+<p>然后将其添加到Nginx配置中去：</p>
+<figure class="highlight yaml"><table><tbody><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">server</span> {</span><br><span class="line">    <span class="string">listen</span> <span class="number">443</span> <span class="string">ssl</span> <span class="string">default_server;</span></span><br><span class="line">    <span class="string">listen</span> [<span class="string">::</span>]<span class="string">:443</span> <span class="string">ssl</span> <span class="string">default_server;</span></span><br><span class="line">    <span class="string">server_name</span> <span class="string">_;</span>  <span class="comment"># 匹配所有未指定的请求</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 证书配置</span></span><br><span class="line">    <span class="string">ssl_certificate</span> <span class="string">/etc/nginx/cert/certificate.crt;</span></span><br><span class="line">    <span class="string">ssl_certificate_key</span> <span class="string">/etc/nginx/cert/private.key;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 返回 444 状态码，关闭连接而不返回响应</span></span><br><span class="line">    <span class="string">return</span> <span class="number">444</span><span class="string">;</span></span><br><span class="line">}</span><br></pre></td></tr></tbody></table></figure>
+
+<p><img src="https://anneballa.github.io/pageimgs/image-20241016133751469.png" alt="image-20241016133751469"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://anneballa.github.io">Annabelle</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://anneballa.github.io/posts/f15e01fd42c3/">https://anneballa.github.io/posts/f15e01fd42c3/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener external nofollow noreferrer" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Infrastructure/">Infrastructure</a></div><div class="post-share"><div class="social-share" data-image="https://anneballa.github.io/img/cover1.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer=""></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>Sponsor</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/wechat.png" target="_blank"><img class="post-qr-code-img" src="/img/wechat.png" alt="wechat"></a><div class="post-qr-code-desc">wechat</div></li><li class="reward-item"><a href="/img/alipay.png" target="_blank"><img class="post-qr-code-img" src="/img/alipay.png" alt="alipay"></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/posts/86087825bb25/" title="Proving Grounds Access Writeup"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">Proving Grounds Access Writeup</div></div><div class="info-2"><div class="info-item-1">Recon:对端口进行扫描探测： 1nmap 192.168.203.187 -p- -Pn -n -sT --min-rate 2000   1nmap 192.168.203.187 -sC -sV -p 53,80,88,135,139,389,445,464,593,636,3268 -Pn   根据扫描结果来看，目标域名为access.offsec。 GetFlag:搜集目录信息，发现有趣的URL： 1dirsearch -u http://access.offsec/   1234http://access.offsec/cgi-bin/printenv.plhttp://access.offsec/uploads/http://access.offsec/assets/http://access.offsec/forms/  获取到站点绝对路径：  点击网页的Buy...</div></div></div></a><a class="pagination-related" href="/posts/3a984a213ce2/" title="HTB UnderPass Writeup"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper2.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">HTB UnderPass Writeup</div></div><div class="info-2"><div class="info-item-1">  ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/posts/7204033a16e5/" title="Code-server"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper12.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-24</div><div class="info-item-2">Code-server</div></div><div class="info-2"><div class="info-item-1">发现了一个极其方便的应用，这可要比在宝塔里编辑文件方便很多,发现自己最近在疯狂搞基础设施搭建： 1https://github.com/coder/code-server  使用安装命令： 1curl -fsSL https://code-server.dev/install.sh | sh  就安装好了，真简单，默认配置文件在以下位置： 1~/.config/code-server/config.yaml  配置文件示例： 1234567bind-addr: 0.0.0.0:8080  # Code Server 监听的地址和端口  auth: password           # 认证方式，可以是 'password' 或 'none'  password: yourpassword   # 用于登录的密码  cert: false              # 是否使用 HTTPS，默认为 false  # cert: /path/to/cert.crt  # 如果使用 HTTPS，指定证书路径  # cert-key:...</div></div></div></a><a class="pagination-related" href="/posts/8e8bdf848f57/" title="Hexo博客站点搭建记录"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper2.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-24</div><div class="info-item-2">Hexo博客站点搭建记录</div></div><div class="info-2"><div class="info-item-1">最近，我的观念发生了一些改变。回顾过去一两年，我在折腾各种环境上花费了太多时间和精力，这让我渐渐偏离了最初的技术研究方向，再者很多基础设施我并没有从一开始用心认证去做，一时兴起占据多数。现在我觉得应该收收心思，少些花里胡哨，多点脚踏实地，决定将个人基础设施踏踏实实的用心做好。我觉得重构博客是一个不错的开始。 环境准备在搭建博客之前最好选择一个适合自己的搭载的博客环境，最开始我是准备在物理机上构建，但是考虑到后续可能会有很多文章内容包含会被杀软查杀的命令代码，所以我使用Hyper-V安装了一台搭载Debian 12操作系统的虚拟机用来搭载我的博客站点。VMware最近一两年在使用过程中总是出现一些莫名其妙的小问题，但是让我个人感觉非常不爽，我更喜欢Hyper-V，虽然两者对于个人用户来说没啥大区别。VMware与Hyper-V其实都不方便复制粘贴的，所以可以开启服务器的SSH服务，便于复制粘贴： 1systemctl start sshd.service   Windows 10以后的操作系统命令行已经自带ssh工具了，打开物理机终端输入： 12ssh...</div></div></div></a><a class="pagination-related" href="/posts/9db2793ab1c1/" title="Hyprland桌面环境构建与美化"><img class="cover" src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper6.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-24</div><div class="info-item-2">Hyprland桌面环境构建与美化</div></div><div class="info-2"><div class="info-item-1">最近我尝试了一款名为 Hyprland 的 Linux 桌面环境，这个过程让我折腾了很久。由于对 Linux 底层原理不太了解，加上各种报错让我感到无力，我先后在 Debian、Kali、Parrot 和 Arch Linux 上尝试安装。比较麻烦是来源于它只支持 C++26，而目前 Kali 和 Parrot 只有 g++13，C++26 只有在 Debian 13 测试版和 Arch Linux 系列中可用。虽然尝试在 Debian 上从零构建，但总是因为一些未知原因报错，而 Arch Linux 则相对容易构建。然而，在日常工作和学习中，各种工具环境的报错让人头疼，尽管有文档支持。 在 Arch 使用一段时间后，我渐渐的喜欢上了它，但紧接着就遇到了问题，一些工具报错甚至没有错误日志，只显示白屏。但是我仍然不想换回 Windows，因为我选择的笔记本似乎真的是为程序员设计的，装 Windows 时会出现死机和音箱破音的问题，而在 Linux 下这些问题都没有。 尽管心灰意冷，我准备结束折腾之路，老老实实换回 Kali，但 Kali 安装其他软件时的依赖问题也让我头疼，尤其是...</div></div></div></a></div></div><hr class="custom-hr"><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/user.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"></div><div class="author-info-name">Annabelle</div><div class="author-info-description">Be a down-to-earth person</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">35</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/Anneballa"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/Anneballa" rel="external nofollow noreferrer" target="_blank" title="Github"><i class="fab fa-github" style="color: #2E2E2E;"></i></a><a class="social-icon" href="mailto:worldisend.com@gmail.com" rel="external nofollow noreferrer" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #2E2E2E;"></i></a><a class="social-icon" href="https://anneballa.github.io/WeChatUser.jpg" target="_blank" title="WeChat"><i class="fab fa-weixin" style="color: #2E2E2E;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Welcome to my blog! Here, you'll find a collection of my experiences and insights in red team penetration testing, programming tips, and tech tinkering. I hope you discover content that's both intriguing and practical, and that you enjoy your time here.</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Nginx%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86Docker%E5%AE%B9%E5%99%A8"><span class="toc-number">1.</span> <span class="toc-text">Nginx反向代理Docker容器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%9E%E8%99%9A%E6%8B%9F%E7%8E%AF%E5%A2%83Web%EF%BC%9A"><span class="toc-number">2.</span> <span class="toc-text">非虚拟环境Web：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">3.</span> <span class="toc-text">注意事项</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/posts/24c92351459c/" title="HTB Vintage Writeup"><img src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper3.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HTB Vintage Writeup"></a><div class="content"><a class="title" href="/posts/24c92351459c/" title="HTB Vintage Writeup">HTB Vintage Writeup</a><time datetime="2025-01-01T15:18:27.065Z" title="Created 2025-01-01 23:18:27">2025-01-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/126419a6a892/" title="HTB Cicada Writeup"><img src="https://anneballa.github.io/img/wallpaperflare-cropped.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HTB Cicada Writeup"></a><div class="content"><a class="title" href="/posts/126419a6a892/" title="HTB Cicada Writeup">HTB Cicada Writeup</a><time datetime="2025-01-01T15:18:27.013Z" title="Created 2025-01-01 23:18:27">2025-01-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/posts/dc700bf298de/" title="HTB Certified Writeup"><img src="https://anneballa.github.io/img/wallpaperflare.com_wallpaper7.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="HTB Certified Writeup"></a><div class="content"><a class="title" href="/posts/dc700bf298de/" title="HTB Certified Writeup">HTB Certified Writeup</a><time datetime="2025-01-01T15:18:26.957Z" title="Created 2025-01-01 23:18:26">2025-01-01</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(https://anneballa.github.io/img/cover1.jpg);"><div id="footer-wrap"><div class="copyright">©2024 - 2025 By Annabelle</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener external nofollow noreferrer" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener external nofollow noreferrer" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Hi, welcome to my <a target="_blank" rel="noopener external nofollow noreferrer" href="https://butterfly.js.org/">blog</a>!</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="Toggle Between Traditional and Simplified Chinese">簡</button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"></div><script src="https://cdn.jsdelivr.net/npm/blueimp-md5/js/md5.min.js"></script><div class="aplayer no-destroy" data-volume="0.3" data-id="7274845708" data-server="netease" data-type="playlist" data-fixed="true" data-mini="true" data-listfolded="false" data-order="random" data-preload="none" data-lrctype="0" data-autoplay="true" data-theme="#1A1A1A" muted=""></div><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/aplayer/dist/APlayer.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/metingjs/dist/Meting.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax/pjax.min.js"></script><script async="" data-pjax="" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"></div></div><hr><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div></div></div><script src="/bundle.js"></script><script>(() => {
+  const panguFn = () => {
+    if (typeof pangu === 'object') pangu.autoSpacingPage()
+    else {
+      btf.getScript('https://cdn.jsdelivr.net/npm/pangu/dist/browser/pangu.min.js')
+        .then(() => {
+          pangu.autoSpacingPage()
+        })
+    }
+  }
+
+  const panguInit = () => {
+    if (false){
+      GLOBAL_CONFIG_SITE.isPost && panguFn()
+    } else {
+      panguFn()
+    }
+  }
+
+  btf.addGlobalFn('pjaxComplete', panguInit, 'pangu')
+  document.addEventListener('DOMContentLoaded', panguInit)
+})();
+(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.isShuoshuo
+  const option = null
+
+  const initValine = (el, path) => {
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyValine = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+
+    const valineConfig = {
+      el: '#vcomment',
+      appId: 'fKkdoOGNlkozMbbTJLCjBAc9-MdYXbMMI',
+      appKey: 'UGfkx1EW64F8HbijrVqMISJl',
+      avatar: 'dYITsXL09VpXYoKygV264Yg4',
+      serverURLs: '',
+      emojiMaps: "",
+      visitor: false,
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || window.location.pathname
+    }
+
+    new Valine(valineConfig)
+  }
+
+  const loadValine = async (el, path) => {
+    if (typeof Valine === 'function') {
+      initValine(el, path)
+    } else {
+      await btf.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js')
+      initValine(el, path)
+    }
+  }
+
+  if (isShuoshuo) {
+    'Valine' === 'Valine'
+      ? window.shuoshuoComment = { loadComment: loadValine }
+      : window.loadOtherComment = loadValine
+    return
+  }
+
+  if ('Valine' === 'Valine' || !false) {
+    if (false) btf.loadComment(document.getElementById('vcomment'),loadValine)
+    else setTimeout(loadValine, 0)
+  } else {
+    window.loadOtherComment = loadValine
+  }
+})();
+window.newestComments = {
+  changeContent: content => {
+    if (content === '') return content
+
+    content = content.replace(/<img.*?src="(.*?)"?[^\>]+>/ig, '[Image]') // replace image link
+    content = content.replace(/<a[^>]+?href=["']?([^"']+)["']?[^>]*>([^<]+)<\/a>/gi, '[Link]') // replace url
+    content = content.replace(/<pre><code>.*?<\/pre>/gi, '[Code]') // replace code
+    content = content.replace(/<code>.*?<\/code>/gi, '[Code]') // replace code      
+    content = content.replace(/<[^>]+>/g, "") // remove html tag
+
+    if (content.length > 150) {
+      content = content.substring(0, 150) + '...'
+    }
+    return content
+  },
+
+  generateHtml: (array, ele) => {
+    let result = ''
+
+    if (array.length) {
+      for (let i = 0; i < array.length; i++) {
+        result += '<div class="aside-list-item">'
+
+        if (true && array[i].avatar) {
+          const imgAttr = 'src'
+          result += `<a href="${array[i].url}" class="thumbnail"><img ${imgAttr}="${array[i].avatar}" alt="${array[i].nick}"></a>`
+        }
+
+        result += `<div class="content">
+        <a class="comment" href="${array[i].url}" title="${array[i].content}">${array[i].content}</a>
+        <div class="name"><span>${array[i].nick} / </span><time datetime="${array[i].date}">${btf.diffDate(array[i].date, true)}</time></div>
+        </div></div>`
+      }
+    } else {
+      result += 'No comments'
+    }
+
+    ele.innerHTML = result
+    window.lazyLoadInstance && window.lazyLoadInstance.update()
+    window.pjax && window.pjax.refresh(ele)
+  },
+
+  newestCommentInit: (name, getComment) => {
+    const $dom = document.querySelector('#card-newest-comments .aside-list')
+    if ($dom) {
+      const data = btf.saveToLocal.get(name)
+      if (data) {
+        newestComments.generateHtml(JSON.parse(data), $dom)
+      } else {
+        getComment($dom)
+      }
+    }
+  },
+
+  run: (name, getComment) => {
+    newestComments.newestCommentInit(name, getComment)
+    btf.addGlobalFn('pjaxComplete', () => newestComments.newestCommentInit(name, getComment), name)
+  }
+};
+window.addEventListener('load', () => {
+  const keyName = 'valine-newest-comments'
+  const { changeContent, generateHtml, run } = window.newestComments
+
+  const getIcon = (icon, mail) => {
+    if (icon) return icon
+    let defaultIcon = '?d=dYITsXL09VpXYoKygV264Yg4'
+    let iconUrl = `https://gravatar.loli.net/avatar/${md5(mail.toLowerCase()) + defaultIcon}`
+    return iconUrl
+  }
+
+  const getComment = ele => {
+    const serverURL = 'https://fKkdoOGN.api.lncldglobal.com'
+
+    var settings = {
+      "method": "GET",
+      "headers": {
+        "X-LC-Id": 'fKkdoOGNlkozMbbTJLCjBAc9-MdYXbMMI',
+        "X-LC-Key": 'UGfkx1EW64F8HbijrVqMISJl',
+        "Content-Type": "application/json"
+      },
+    }
+
+    fetch(`${serverURL}/1.1/classes/Comment?limit=6&order=-createdAt`,settings)
+      .then(response => response.json())
+      .then(data => {
+        const valineArray = data.results.map(e => {
+          return {
+            'avatar': getIcon(e.QQAvatar, e.mail),
+            'content': changeContent(e.comment),
+            'nick': e.nick,
+            'url': e.url + '#' + e.objectId,
+            'date': e.updatedAt,
+          }
+        })
+        btf.saveToLocal.set(keyName, JSON.stringify(valineArray), 10/(60*24))
+        generateHtml(valineArray, ele)
+      }).catch(e => {
+        console.error(e)
+        ele.textContent= "Unable to retrieve comments, please check the configuration"
+      })
+  }
+
+  run(keyName, getComment)
+});
+POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+;
+(() => {
+  const destroyAplayer = () => {
+    if (window.aplayers) {
+      for (let i = 0; i < window.aplayers.length; i++) {
+        if (!window.aplayers[i].options.fixed) {
+          window.aplayers[i].destroy()
+        }
+      }
+    }
+  }
+
+  const runMetingJS = () => {
+    typeof loadMeting === 'function' && document.getElementsByClassName('aplayer').length && loadMeting()
+  }
+
+  btf.addGlobalFn('pjaxSend', destroyAplayer, 'destroyAplayer')
+  btf.addGlobalFn('pjaxComplete', loadMeting, 'runMetingJS')
+})();
+(() => {
+  const pjaxSelectors = ["head > title","#config-diff","#body-wrap","#rightside-config-hide","#rightside-config-show",".js-pjax"]
+
+  window.pjax = new Pjax({
+    elements: 'a:not([target="_blank"])',
+    selectors: pjaxSelectors,
+    cacheBust: false,
+    analytics: true,
+    scrollRestoration: false
+  })
+
+  const triggerPjaxFn = (val) => {
+    if (!val) return
+    Object.values(val).forEach(fn => fn())
+  }
+
+  document.addEventListener('pjax:send', () => {
+    // removeEventListener
+    btf.removeGlobalFnEvent('pjaxSendOnce')
+    btf.removeGlobalFnEvent('themeChange')
+
+    // reset readmode
+    const $bodyClassList = document.body.classList
+    if ($bodyClassList.contains('read-mode')) $bodyClassList.remove('read-mode')
+
+    triggerPjaxFn(window.globalFn.pjaxSend)
+  })
+
+  document.addEventListener('pjax:complete', () => {
+    btf.removeGlobalFnEvent('pjaxCompleteOnce')
+    document.querySelectorAll('script[data-pjax]').forEach(item => {
+      const newScript = document.createElement('script')
+      const content = item.text || item.textContent || item.innerHTML || ""
+      Array.from(item.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value))
+      newScript.appendChild(document.createTextNode(content))
+      item.parentNode.replaceChild(newScript, item)
+    })
+
+    triggerPjaxFn(window.globalFn.pjaxComplete)
+  })
+
+  document.addEventListener('pjax:error', e => {
+    if (e.request.status === 404) {
+      pjax.loadUrl('/404.html')
+    }
+  })
+})()</script></body></html>
